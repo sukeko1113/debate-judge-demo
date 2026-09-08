@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEnDA-Judge｜試合分析・判定エンジン デモ v13</title>
+<title>HEnDA-Judge｜試合分析・判定エンジン デモ v14</title>
 <style>
 :root{
   --paper:#E7EBF1;--surface:#FFFFFF;--ink:#16202E;--ink-soft:#4A5768;--ink-faint:#7C889A;
@@ -506,18 +506,11 @@ const Audio={
     if(this.unlocked||!window.speechSynthesis) return;
     try{
       speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(' ');
-      u.volume=0; u.rate=10; u.lang='ja-JP';
+      const u=new SpeechSynthesisUtterance('。');
+      u.volume=0; u.rate=2; u.lang='ja-JP';
       u.onend=()=>{ this.ttsOK=true; hint(); };
       u.onerror=()=>{ this.ttsOK=false; hint(); };
-      try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch(e){}
-    speechSynthesis.speak(u);
-    /* Android Chrome silently pauses long queues; nudge it back. */
-    if(this._kick) clearInterval(this._kick);
-    this._kick=setInterval(()=>{
-      if(!speechSynthesis.speaking){ clearInterval(this._kick); return; }
-      try{ speechSynthesis.pause(); speechSynthesis.resume(); }catch(e){}
-    },5000);
+      speechSynthesis.speak(u);
       this.unlocked=true;
       setTimeout(()=>{ if(this.ttsOK===null){ this.ttsOK=false; hint(); } },2500);
     }catch(e){ this.ttsOK=false; }
@@ -540,27 +533,46 @@ const Audio={
     return v;
   },
   rate(){ return {slow:.85,normal:1,fast:1.35}[$('sp').value]; },
+  /* Android TTS drops long utterances, so speak sentence by sentence. */
+  chunk(t){
+    const parts=String(t).split(/(?<=[。．.!?！？])\s*/).filter(Boolean);
+    const out=[];
+    for(let piece of parts){
+      while(piece.length>110){
+        let cut=piece.lastIndexOf('、',110);
+        if(cut<40) cut=piece.lastIndexOf(' ',110);
+        if(cut<40) cut=110;
+        out.push(piece.slice(0,cut+1)); piece=piece.slice(cut+1);
+      }
+      if(piece) out.push(piece);
+    }
+    return out.length?out:[String(t)];
+  },
   speak(text,lang,onend,seat,pitch){
     if(!window.speechSynthesis){ onend(); return null; }
-    const u=new SpeechSynthesisUtterance(text); u.lang=lang;
-    const v=this.pick(lang,seat); if(v) u.voice=v;
-    u.rate=this.rate(); u.pitch=lang.startsWith('ja')?.95:(pitch||1); u.volume=1;
-    let done=false; const fin=()=>{ if(done) return; done=true; if(this._kick) clearInterval(this._kick); onend(); };
-    u.onend=()=>{ this.ttsOK=true; fin(); };
-    u.onerror=()=>{ if(this.ttsOK===null) this.ttsOK=false; hint(); fin(); };
-    try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch(e){}
-    speechSynthesis.speak(u);
-    /* Android Chrome silently pauses long queues; nudge it back. */
-    if(this._kick) clearInterval(this._kick);
-    this._kick=setInterval(()=>{
-      if(!speechSynthesis.speaking){ clearInterval(this._kick); return; }
-      try{ speechSynthesis.pause(); speechSynthesis.resume(); }catch(e){}
-    },5000);
-    /* safety: some engines never fire onend */
-    setTimeout(()=>{ if(!done&&!speechSynthesis.speaking) fin(); }, Math.max(4000,text.length*140/this.rate()));
-    return u;
+    const chunks=this.chunk(text), v=this.pick(lang,seat), self=this;
+    const same=v&&(v.lang||'').toLowerCase().replace('_','-').slice(0,2)===lang.slice(0,2).toLowerCase();
+    let i=0, done=false;
+    const clearWd=()=>{ if(self._wd){clearTimeout(self._wd);self._wd=null;} };
+    const fin=()=>{ if(done) return; done=true; clearWd(); onend(); };
+    const arm=ms=>{ clearWd(); self._wd=setTimeout(()=>{ try{speechSynthesis.cancel();}catch(e){} fin(); }, ms); };
+    const next=()=>{
+      if(done) return;
+      if(i>=chunks.length){ self.ttsOK=true; fin(); return; }
+      const txt=chunks[i++];
+      const u=new SpeechSynthesisUtterance(txt);
+      u.lang=lang; if(same) u.voice=v;
+      u.rate=self.rate(); u.pitch=lang.startsWith('ja')?.95:(pitch||1); u.volume=1;
+      u.onend=()=>{ self.ttsOK=true; next(); };
+      u.onerror=()=>{ if(self.ttsOK===null){ self.ttsOK=false; hint(); } next(); };
+      arm(Math.max(9000, txt.length*520));
+      try{ speechSynthesis.speak(u); }catch(e){ next(); }
+    };
+    try{ speechSynthesis.cancel(); }catch(e){}
+    setTimeout(next,60);   /* Android needs a beat after cancel() */
+    return null;
   },
-  stop(){ if(window.speechSynthesis) speechSynthesis.cancel(); if(this._kick) clearInterval(this._kick); this.stopMurmur(); },
+  stop(){ if(window.speechSynthesis){ try{speechSynthesis.cancel();}catch(e){} } if(this._wd){clearTimeout(this._wd);this._wd=null;} this.stopMurmur(); },
   tone(f,dur,type='sine',g=.18,when=0){
     if(!this.ctx||!$('vSfx').checked) return;
     const t=this.ctx.currentTime+when, o=this.ctx.createOscillator(), a=this.ctx.createGain();
@@ -721,9 +733,7 @@ function runLine(i){
     if(ev&&ev.kind) Audio.cue(ev.kind);
     if(ev&&ev.say&&$('vJdg').checked&&window.speechSynthesis){
       jbubble.classList.add('speaking');
-      setTimeout(()=>{ if(my!==run) return;
-        Audio.speak(ev.say,'ja-JP',()=>{ if(my!==run) return; jbubble.classList.remove('speaking'); setTimeout(next,350); });
-      }, ev.kind==='drop'?600:350);
+      Audio.speak(ev.say,'ja-JP',()=>{ if(my!==run) return; jbubble.classList.remove('speaking'); setTimeout(next,300); });
     }else{
       timer=setTimeout(next, ev?Math.min(2600,fallbackMs(ev.k)+1200):500);
     }
