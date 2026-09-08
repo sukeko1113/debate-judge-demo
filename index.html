@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEnDA-Judge｜試合分析・判定エンジン デモ v17</title>
+<title>HEnDA-Judge｜試合分析・判定エンジン デモ v18</title>
 <style>
 :root{
   --paper:#E7EBF1;--surface:#FFFFFF;--ink:#16202E;--ink-soft:#4A5768;--ink-faint:#7C889A;
@@ -70,14 +70,16 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .chair,.actor{position:absolute;transform-origin:50% 100%;transform:translate(-50%,-100%) rotateX(-59deg)}
 .chair svg{display:block;width:70px;height:auto}
 .actor{transition:transform .45s cubic-bezier(.34,1.3,.5,1),opacity .35s;opacity:.92}
-.actor svg{display:block;width:88px;height:auto;transform:translateY(16px)}
+.actor svg{display:block;width:88px;height:auto;transform:translateY(16px);margin-top:6px}
 .actor .legs{opacity:0}
 .actor.on{opacity:1;transform:translate(-50%,-100%) rotateX(-59deg) translateY(-34px) scale(1.12)}
 .actor.on svg{transform:none}
 .actor.on .legs{opacity:1}
-.actor .tag{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);font-size:10px;letter-spacing:.05em;white-space:nowrap;
-  padding:1px 7px;border-radius:9px;background:rgba(255,255,255,.9);color:var(--ink-soft);border:1px solid var(--rule-fine)}
-.actor.on .tag{background:var(--ink);color:#fff;border-color:var(--ink)}
+.actor .tag{position:absolute;left:50%;top:-15px;transform:translateX(-50%) translateZ(1px);
+  font-size:10px;line-height:1.5;letter-spacing:.04em;white-space:nowrap;
+  padding:1px 7px;border-radius:9px;background:rgba(255,255,255,.94);color:var(--ink);
+  border:1px solid var(--rule);box-shadow:0 1px 3px rgba(22,32,46,.22);z-index:2}
+.actor.on .tag{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:0 2px 6px rgba(22,32,46,.35)}
 .actor.talking .body{animation:bob 1.1s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
 .actor.talking .mouth{animation:talk .34s ease-in-out infinite alternate}
