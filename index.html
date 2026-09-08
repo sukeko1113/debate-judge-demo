@@ -155,14 +155,22 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .key i{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:4px;vertical-align:-1px}
 /* v19 総括の比較。.scores と同じく flex:0 0 auto で「縮まない側」に置く */
 .cmp{padding:8px 17px 10px;border-bottom:1px solid var(--rule);flex:0 0 auto}
-.cmpr{display:grid;grid-template-columns:6.6em 1fr auto;gap:3px 8px;align-items:baseline;
-  padding:5px 4px;margin:0 -4px;border-top:1px solid var(--rule-fine)}
+.cmpr{display:grid;grid-template-columns:6.6em 1fr auto;gap:2px 8px;align-items:baseline;
+  padding:4px 4px;margin:0 -4px;border-top:1px solid var(--rule-fine)}
 .cmpr:first-child{border-top:0}
 .cmpr .cn{font-size:11.5px;color:var(--ink-soft);line-height:1.4}
 .cmpr .cc{font-size:11.5px;letter-spacing:.02em;line-height:1.4}
 .cmpr .cc i{font-style:normal;margin-right:4px}
-.cmpr .cw{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink-faint);white-space:nowrap}
-.cmpr .cy{grid-column:2/4;margin:0;font-size:10.5px;line-height:1.45;color:var(--ink-faint)}
+.cmpr .cw{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink-faint);white-space:nowrap;text-align:right}
+.cmpr .cw b{display:block;font-weight:600}
+.cmpr .cw em{display:block;font-style:normal;font-size:9.5px;letter-spacing:.02em;color:var(--ink-faint);margin-top:1px}
+/* 何と何が比べられたかを両側とも出す。片側が黙っていればそれも見える */
+.cmpr .cs{grid-column:1/4;margin:1px 0 0;font-size:10.5px;line-height:1.4;color:var(--ink-soft);
+  padding-left:9px;border-left:2px solid var(--rule-fine)}
+.cmpr .cs[data-side=aff]{border-left-color:var(--aff)}
+.cmpr .cs[data-side=neg]{border-left-color:var(--neg)}
+.cmpr .cs .ct{font-size:9.5px;letter-spacing:.03em;color:var(--ink-faint);margin-right:6px;font-variant-numeric:tabular-nums}
+.cmpr .cy{grid-column:1/4;margin:2px 0 0;font-size:10.5px;line-height:1.4;color:var(--ink-faint)}
 .cmpr[data-c=aff] .cc{color:var(--aff);font-weight:600}
 .cmpr[data-c=neg] .cc{color:var(--neg);font-weight:600}
 .cmpr[data-c=none] .cc{color:var(--ink-faint)}
@@ -359,9 +367,18 @@ const DIMS=[{id:'inh',n:'現状との連続性',c:'#2F7A6E'},{id:'prob',n:'発�
    arena=false の観点は比較の土俵にせず、重みを常に 1.0 に固定する。 */
 const SUMCMP={
   inh: {arena:false,c: 0,why:'試合を通じて一度も争われていない',src:'該当する比較の主張なし'},
-  prob:{arena:true, c: 0,why:'双方が自分の攻撃を言い直しただけで噛み合わない',src:'対応する発言：3:58 ／ 4:14'},
-  imp: {arena:true, c:-1,why:'否定が被害の数字を正面から否認。肯定は落としに触れず',src:'対応する発言：4:14'},
-  sol: {arena:true, c:+1,why:'肯定が回復可能性の軸を出し、否定は無応答',src:'対応する発言：4:06'},
+  prob:{arena:true, c: 0,
+        aff:{t:'3:58',s:'相手のデメリットは対象外の企業で測られた'},
+        neg:{t:'4:14',s:'相手のメリットは自分の資料の労働者に届かない'},
+        why:'互いに自分の攻撃を言い直しただけで、相手の指摘に答えていない',src:'対応する発言：3:58 ／ 4:14'},
+  imp: {arena:true, c:-1,
+        aff:{t:'3:58',s:'防げたはずの死である'},
+        neg:{t:'4:14',s:'その数字は被害の数字ではなかった'},
+        why:'肯定は落とし（3:32）に触れず、否定の否認が通った',src:'対応する発言：4:14'},
+  sol: {arena:true, c:+1,
+        aff:{t:'4:06',s:'生産の落ち込みは戻せるが、命は戻せない'},
+        neg:null,
+        why:'試合を通じて唯一、軸を名指しした比較である',src:'対応する発言：4:06'},
   evd: {arena:false,c: 0,why:'資料の質は記録から評価。射程は発生可能性で扱う',src:'該当する比較の主張なし'}
 };
 const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
@@ -715,7 +732,7 @@ function judge(st){
   const on=!!st.CMP;
   const rows=DIMS.map(d=>{
     const dk=st.ADV.cur[d.id]-st.DIS.cur[d.id],m=SUMCMP[d.id],w=on?cmpW(dk,m.c,m.arena):1;
-    return {d,dk,w,prod:dk*w,c:on?m.c:0,arena:m.arena,why:m.why,src:m.src};
+    return {d,dk,w,prod:dk*w,c:on?m.c:0,arena:m.arena,why:m.why,src:m.src,aff:m.aff,neg:m.neg};
   });
   const raw=rows.reduce((a,r)=>a+r.dk,0),wsum=rows.reduce((a,r)=>a+r.prod,0);
   return {rows,raw,wsum,on,aff:total(st.ADV),neg:total(st.DIS),
@@ -747,6 +764,8 @@ function drawScores(st,hits){
 }
 /* v19 総括：観点ごとの比較。4状態（肯定が制した／否定が制した／決着なし／土俵外）を色と記号で区別する */
 const CMPLABEL={aff:['●','肯定が制した'],neg:['●','否定が制した'],none:['—','決着なし'],off:['·','土俵外']};
+/* 重みがその値になった理由。なぜ 1.5 なのかをその場で読めるようにする */
+const WRULE={up:'優位側が制した',down:'劣勢側が制した'};
 function drawCmp(st){
   const v=judge(st), show=!!(v&&v.on);
   $('cmph').classList.toggle('hide',!show); $('cmp').classList.toggle('hide',!show);
@@ -755,11 +774,15 @@ function drawCmp(st){
     const state=!r.arena?'off':r.c>0?'aff':r.c<0?'neg':'none';
     const w=r.w>1?'up':r.w<1?'down':'flat';
     const [mark,label]=CMPLABEL[state];
+    const claim=(side,m,who)=>'<p class="cs" data-side="'+side+'"><span class="ct">'+who+
+      (m?' '+m.t:'')+'</span>'+(m?m.s:'応答なし')+'</p>';
+    const body=r.arena?claim('aff',r.aff,'肯定')+claim('neg',r.neg,'否定'):'';
     return '<div class="cmpr" data-c="'+state+'" data-w="'+w+'">'+
       '<span class="cn">'+r.d.n+'</span>'+
       '<span class="cc"><i>'+mark+'</i>'+label+'</span>'+
-      '<span class="cw">'+(state==='off'?'重み固定 1.0':'×'+r.w.toFixed(1))+'</span>'+
-      '<p class="cy">'+r.why+'</p></div>';
+      '<span class="cw"><b>'+(state==='off'?'1.0 固定':'×'+r.w.toFixed(1))+'</b>'+
+        (WRULE[w]?'<em>'+WRULE[w]+'</em>':'')+'</span>'+
+      body+'<p class="cy">'+r.why+'</p></div>';
   }).join('');
 }
 function prevVal(idx,arg,dim){let v=null;for(let i=0;i<idx;i++){const e=LINES[i].ev;if(!e||e.arg!==arg)continue;if(e.kind==='intro')v=e.set[dim];else if(e.hits&&dim in e.hits)v=e.hits[dim];}return v}
