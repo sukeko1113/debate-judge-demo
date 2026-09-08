@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEnDA-Judge｜試合分析・判定エンジン デモ v12</title>
+<title>HEnDA-Judge｜試合分析・判定エンジン デモ v13</title>
 <style>
 :root{
   --paper:#E7EBF1;--surface:#FFFFFF;--ink:#16202E;--ink-soft:#4A5768;--ink-faint:#7C889A;
@@ -29,6 +29,9 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
 .btn.primary:hover{background:#17415a}
 .btn:focus-visible,.chip:focus-visible{outline:2px solid var(--aff);outline-offset:2px}
 select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var(--rule);background:#fff;border-radius:2px}
+.ahint{font-size:11.5px;color:#7A6320;background:#F7F2E2;border:1px solid #D9CDA6;
+  padding:3px 10px;border-radius:2px;line-height:1.5}
+.ahint.hide{display:none}
 .clock{font-size:12.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;min-width:4.2em;text-align:right}
 .aud{display:flex;gap:10px;font-size:12px;color:var(--ink-soft);align-items:center;padding-left:8px;border-left:1px solid var(--rule-fine)}
 .aud label{display:flex;gap:4px;align-items:center;white-space:nowrap}
@@ -200,6 +203,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
     <button class="btn" id="nstage">ステージ ⏭</button>
     <select id="sp" aria-label="再生速度"><option value="slow">0.5倍</option><option value="normal" selected>等倍</option><option value="fast">2倍</option></select>
     <span class="clock" id="clock">0:00</span>
+    <span class="ahint hide" id="ahint"></span>
     <span class="aud">
       <label><input type="checkbox" id="vSpk" checked>発言の音声</label>
       <label><input type="checkbox" id="vJdg" checked>解説の音声</label>
@@ -234,7 +238,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 
 <div class="foot">
   <p>本エンジンは判定を出しますが、確定するのは人です。判定と同時に、そこに至った記録をすべて開示します。総括は論点とは別枠で採点し、論点のスコアには加算していません。本デモはあらかじめ用意したシナリオを再生しています。試合時間は説明のため実際より大幅に短縮し、進行は大会ルール2.1の12スピーチの順序に従っています。準備時間中の相談は、実際の試合を再現したものではなく説明のための創作です。試合内容はHEnDA方式の進行に沿って作成したサンプルで、実在の試合・団体とは関係ありません。</p>
-  <p>音声はブラウザ内蔵の読み上げ機能を使用します。選手ごとに英語の地域（US・UK・AU・IN・IE・ZA・CA）を割り当てていますが、実際に使われる声は端末に入っている音声に依存し、該当する地域の音声がない場合は他の英語音声で代用します。日本語音声が入っていない環境では解説は文字のみになります。操作：スペースで再生と一時停止、左右キーで1発言ずつ、Shift＋左右でステージ単位。</p>
+  <p>音声はブラウザ内蔵の読み上げ機能を使用します。<b>読み上げはPCブラウザでの再生を推奨します。</b>スマートフォンでは、ブラウザの制限により読み上げが再生されない場合があります（効果音と画面表示は動作します）。iPhoneのSafariでは特に再生されないことが多く、その場合も解説はすべて画面上の文字で読めます。選手ごとに英語の地域（US・UK・AU・IN・IE・ZA・CA）を割り当てていますが、実際に使われる声は端末に入っている音声に依存し、該当する地域の音声がない場合は他の英語音声で代用します。日本語音声が入っていない環境では解説は文字のみになります。操作：スペースで再生と一時停止、左右キーで1発言ずつ、Shift＋左右でステージ単位。</p>
 </div>
 
 <script>
@@ -495,6 +499,29 @@ const Audio={
   init(){ if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
           if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
   loadVoices(){ if(!window.speechSynthesis) return; this.voices=speechSynthesis.getVoices(); },
+  unlocked:false, ttsOK:null,
+  /* Must run inside the click handler: mobile browsers only allow speech
+     that starts in the same gesture. A short silent utterance opens the gate. */
+  unlock(){
+    if(this.unlocked||!window.speechSynthesis) return;
+    try{
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(' ');
+      u.volume=0; u.rate=10; u.lang='ja-JP';
+      u.onend=()=>{ this.ttsOK=true; hint(); };
+      u.onerror=()=>{ this.ttsOK=false; hint(); };
+      try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch(e){}
+    speechSynthesis.speak(u);
+    /* Android Chrome silently pauses long queues; nudge it back. */
+    if(this._kick) clearInterval(this._kick);
+    this._kick=setInterval(()=>{
+      if(!speechSynthesis.speaking){ clearInterval(this._kick); return; }
+      try{ speechSynthesis.pause(); speechSynthesis.resume(); }catch(e){}
+    },5000);
+      this.unlocked=true;
+      setTimeout(()=>{ if(this.ttsOK===null){ this.ttsOK=false; hint(); } },2500);
+    }catch(e){ this.ttsOK=false; }
+  },
   assigned:{},
   pick(lang,seat){
     const vs=this.voices; if(!vs.length) return null;
@@ -518,14 +545,22 @@ const Audio={
     const u=new SpeechSynthesisUtterance(text); u.lang=lang;
     const v=this.pick(lang,seat); if(v) u.voice=v;
     u.rate=this.rate(); u.pitch=lang.startsWith('ja')?.95:(pitch||1); u.volume=1;
-    let done=false; const fin=()=>{ if(done) return; done=true; onend(); };
-    u.onend=fin; u.onerror=fin;
+    let done=false; const fin=()=>{ if(done) return; done=true; if(this._kick) clearInterval(this._kick); onend(); };
+    u.onend=()=>{ this.ttsOK=true; fin(); };
+    u.onerror=()=>{ if(this.ttsOK===null) this.ttsOK=false; hint(); fin(); };
+    try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch(e){}
     speechSynthesis.speak(u);
+    /* Android Chrome silently pauses long queues; nudge it back. */
+    if(this._kick) clearInterval(this._kick);
+    this._kick=setInterval(()=>{
+      if(!speechSynthesis.speaking){ clearInterval(this._kick); return; }
+      try{ speechSynthesis.pause(); speechSynthesis.resume(); }catch(e){}
+    },5000);
     /* safety: some engines never fire onend */
     setTimeout(()=>{ if(!done&&!speechSynthesis.speaking) fin(); }, Math.max(4000,text.length*140/this.rate()));
     return u;
   },
-  stop(){ if(window.speechSynthesis) speechSynthesis.cancel(); this.stopMurmur(); },
+  stop(){ if(window.speechSynthesis) speechSynthesis.cancel(); if(this._kick) clearInterval(this._kick); this.stopMurmur(); },
   tone(f,dur,type='sine',g=.18,when=0){
     if(!this.ctx||!$('vSfx').checked) return;
     const t=this.ctx.currentTime+when, o=this.ctx.createOscillator(), a=this.ctx.createGain();
@@ -713,7 +748,13 @@ function runLine(i){
     timer=setTimeout(()=>{ if(my!==run) return; $('act-'+ln.seat).classList.remove('talking'); commentary(); }, isJudge?600:fallbackMs(text));
   }
 }
-function play(){ Audio.init(); playing=true; $('play').textContent='❚❚ 一時停止'; runLine(cur<0?0:cur); }
+function hint(){
+  const el=$('ahint'); if(!el) return;
+  if(!window.speechSynthesis){ el.textContent='この端末は読み上げに対応していません。音声はPCブラウザでの再生を推奨します。'; el.classList.remove('hide'); return; }
+  if(Audio.ttsOK===false){ el.textContent='この端末では読み上げが再生できませんでした。音声はPCブラウザでの再生を推奨します。'; el.classList.remove('hide'); return; }
+  el.classList.add('hide');
+}
+function play(){ Audio.unlock(); Audio.init(); playing=true; $('play').textContent='❚❚ 一時停止'; runLine(cur<0?0:cur); }
 function pause(){ playing=false; run++; clearTimeout(timer); Audio.stop(); $('play').textContent='▶ 再生';
   document.querySelectorAll('.actor').forEach(a=>a.classList.remove('talking')); jbubble.classList.remove('speaking'); }
 function jumpStage(dir){ const s=LINES[cur].stage,t=Math.min(STAGES.length-1,Math.max(0,s+dir)); const idx=LINES.findIndex(l=>l.stage===t); if(idx>=0){pause();goto(idx)} }
