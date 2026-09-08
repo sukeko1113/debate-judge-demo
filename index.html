@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEnDA-Judge｜試合分析・判定エンジン デモ v16</title>
+<title>HEnDA-Judge｜試合分析・判定エンジン デモ v17</title>
 <style>
 :root{
   --paper:#E7EBF1;--surface:#FFFFFF;--ink:#16202E;--ink-soft:#4A5768;--ink-faint:#7C889A;
@@ -557,16 +557,19 @@ const Audio={
     }
     return out.length?out:[String(t)];
   },
+  _sess:null,
   speak(text,lang,onend,seat,pitch){
     if(!window.speechSynthesis){ onend(); return null; }
+    if(this._sess) this._sess.done=true;            /* retire any previous session */
+    const sess={done:false,onend}; this._sess=sess;
     const chunks=this.chunk(text), v=this.pick(lang,seat), self=this;
     const same=v&&(v.lang||'').toLowerCase().replace('_','-').slice(0,2)===lang.slice(0,2).toLowerCase();
-    let i=0, done=false;
+    let i=0;
     const clearWd=()=>{ if(self._wd){clearTimeout(self._wd);self._wd=null;} };
-    const fin=()=>{ if(done) return; done=true; clearWd(); onend(); };
+    const fin=()=>{ if(sess.done) return; sess.done=true; clearWd(); onend(); };
     const arm=ms=>{ clearWd(); self._wd=setTimeout(()=>{ try{speechSynthesis.cancel();}catch(e){} fin(); }, ms); };
     const next=()=>{
-      if(done) return;
+      if(sess.done) return;
       if(i>=chunks.length){ self.ttsOK=true; fin(); return; }
       const txt=chunks[i++];
       const u=new SpeechSynthesisUtterance(txt);
@@ -578,10 +581,24 @@ const Audio={
       try{ speechSynthesis.speak(u); }catch(e){ next(); }
     };
     try{ speechSynthesis.cancel(); }catch(e){}
-    setTimeout(next,60);   /* Android needs a beat after cancel() */
+    setTimeout(next,60);
     return null;
   },
-  stop(){ if(window.speechSynthesis){ try{speechSynthesis.cancel();}catch(e){} } if(this._wd){clearTimeout(this._wd);this._wd=null;} this.stopMurmur(); },
+  /* pause: silence now, do not advance */
+  stop(){
+    if(this._sess) this._sess.done=true;
+    if(window.speechSynthesis){ try{speechSynthesis.cancel();}catch(e){} }
+    if(this._wd){clearTimeout(this._wd);this._wd=null;}
+    this.stopAll();
+  },
+  /* checkbox unticked mid-speech: silence now, but let the playback move on */
+  skipSpeech(){
+    const sess=this._sess; if(!sess||sess.done) return;
+    sess.done=true;
+    if(window.speechSynthesis){ try{speechSynthesis.cancel();}catch(e){} }
+    if(this._wd){clearTimeout(this._wd);this._wd=null;}
+    setTimeout(()=>sess.onend&&sess.onend(),80);
+  },
   tone(f,dur,type='sine',g=.18,when=0){
     if(!this.running()||!$('vSfx').checked) return;
     const t=this.ctx.currentTime+when, o=this.ctx.createOscillator(), a=this.ctx.createGain();
@@ -783,6 +800,7 @@ function pause(){ playing=false; run++; clearTimeout(timer); Audio.stop(); $('pl
   document.querySelectorAll('.actor').forEach(a=>a.classList.remove('talking')); jbubble.classList.remove('speaking'); }
 function jumpStage(dir){ const s=LINES[cur].stage,t=Math.min(STAGES.length-1,Math.max(0,s+dir)); const idx=LINES.findIndex(l=>l.stage===t); if(idx>=0){pause();goto(idx)} }
 
+document.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>b.blur()));
 $('play').onclick=()=>playing?pause():play();
 $('next').onclick=()=>{pause();goto(cur+1)};
 $('back').onclick=()=>{pause();goto(cur-1)};
@@ -790,11 +808,11 @@ $('nstage').onclick=()=>jumpStage(1);
 $('pstage').onclick=()=>jumpStage(-1);
 $('sp').onchange=()=>{ if(playing){ pause(); play(); } };
 $('vSfx').onchange=e=>Audio.setSfx(e.target.checked);
-$('vSpk').onchange=e=>{ if(!e.target.checked&&window.speechSynthesis) speechSynthesis.cancel(); };
-$('vJdg').onchange=e=>{ if(!e.target.checked&&window.speechSynthesis) speechSynthesis.cancel(); };
+$('vSpk').onchange=e=>{ if(!e.target.checked) Audio.skipSpeech(); };
+$('vJdg').onchange=e=>{ if(!e.target.checked) Audio.skipSpeech(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&playing) pause(); });
 document.addEventListener('keydown',e=>{
-  if(['SELECT','INPUT'].includes(e.target.tagName)) return;
+  if(['SELECT','INPUT','BUTTON','A'].includes(e.target.tagName)) return;
   if(e.key===' '||e.code==='Space'){e.preventDefault();playing?pause():play();return}
   if(e.key==='ArrowRight'){e.preventDefault(); e.shiftKey?jumpStage(1):(pause(),goto(cur+1))}
   if(e.key==='ArrowLeft'){e.preventDefault(); e.shiftKey?jumpStage(-1):(pause(),goto(cur-1))}
