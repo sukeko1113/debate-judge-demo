@@ -432,7 +432,7 @@ const SUMCMP={
         src:'対応する発言：4:06 ／ 4:14'},
   evd: {arena:false,c: 0,
         short:'攻撃では争ったが、総括では比較の軸にならなかった',
-        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告が10人未満の企業を調べたものだと述べ、否定側は肯定側の資料に出てくる労働者がプランの届く労働者ではないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないので重みは1.0に固定する。',
+        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告が10人未満の企業を調べたものだと述べ、否定側は肯定側の資料の労働者がどれだけプランの対象企業にいるか示されていないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないので重みは1.0に固定する。',
         src:'該当する比較の主張なし'}
 };
 const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
@@ -442,6 +442,14 @@ const L=(stage,seat,time,en,ja,ev)=>({stage,seat,time,en,ja,ev});
 const PT=(stage,seat,time,ja,ev)=>({stage,seat,time,en:'',ja,prep:SEATS[seat].side,ev});
 const PI=(stage,time,ja,body)=>({stage,seat:'J',time,en:'',ja,prep:'both',narrate:true,ev:{kind:'prep',k:'準備時間',body}});
 const LINES=[
+/* ---------- はじめに ---------- */
+L(0,'J','—',`<b>Before we begin.</b> Watch how one unanswered attack decides this round: the affirmative never answers the attack on impact, and that gap carries all the way to the verdict.`,`<b>はじめに。</b>このデモでは、答え忘れた反論が勝敗にどう響くかをご覧ください。肯定側がディフェンスで応答しなかったインパクトへの攻撃が、そのまま判定まで効きます。`,
+ {kind:'note',k:'見どころ',
+  say:'このデモでは、答え忘れた反論が勝敗にどう響くかをご覧ください。肯定側がディフェンスで応答しなかったインパクトへの攻撃が、そのまま判定まで効きます。',
+  body:['見るべき場面は三つ。2:18 の否定アタック、3:32 の肯定ディフェンスでの落とし、そして総括比較でインパクトの重みが1.5倍になるところである。',
+        '判定に着いたら、左の吹き出しで素点から重み反映後までの計算が読める。右列には観点ごとの根拠と、各発言の時点の解説が残る。'],
+  src:'該当：2:18 ／ 3:32 ／ 総括比較'}),
+
 /* ---------- ① 肯定立論 ---------- */
 L(0,'AC','0:00',`We affirm. <span class="ev">Our plan: the government requires companies with three hundred or more employees to adopt a four-day workweek by 2030, with no cut in monthly wages.</span>`,`私たちは肯定します。<b>プランは、政府が従業員300人以上の企業に対し、2030年までに週休三日制の導入を義務づけるというものです。月額賃金の引き下げは行いません。</b>`,
  {kind:'topicality',arg:'ADV',k:'論題適合性 を確認',
@@ -513,10 +521,14 @@ PT(6,'NC','1:53',`1万人の数字も怪しい。過労が原因の死じゃな�
 PT(6,'AD','1:57',`向こうは資料の範囲を突いてくると思う。300人以上に絞ったところ。`),
 PT(6,'AA','2:00',`年代なら答えられる。業種の話まで来たら、そこは弱い。`),
 /* ---------- ⑤ 否定アタック ---------- */
-L(7,'NA','2:04',`On their process. <span class="ev">Their nine point seven percent was measured before the overtime cap took effect, and it is concentrated in transport and construction — industries made up mostly of small firms that their plan does not cover.</span> Their plan applies to firms of three hundred or more. The workers in their own evidence are not the workers their plan reaches.`,`相手の発生過程についてです。<b>9.7％は残業上限規制が施行される前に測られた数字であり、しかも運輸や建設など、小規模な企業が大半を占めて相手のプランが届かない業種に集中しています。</b>相手のプランは300人以上の企業に適用されます。相手自身の資料に出てくる労働者は、プランが届く労働者ではありません。`,
+L(7,'NA','2:04',`On their process. <span class="ev">Their nine point seven percent is the residue the overtime cap could not remove, and it is concentrated in transport and construction — industries made up mostly of small firms that their plan does not cover.</span> Their plan applies to firms of three hundred or more. Their evidence does not show how many of those workers are in firms their plan reaches.`,`相手の発生過程についてです。<b>9.7％は残業上限規制が取り除けなかった残りの部分であり、しかも運輸や建設など、小規模な企業が大半を占めて相手のプランが届かない業種に集中しています。</b>相手のプランは300人以上の企業に適用されます。相手自身の資料は、その労働者のうちどれだけがプランの届く企業にいるかを示していません。`,
  {kind:'attack',arg:'ADV',hits:{prob:3,evd:4},k:'攻撃 成立',
   say:'狙われたのは発生可能性と資料の裏づけです。発生可能性が7から3へ。インパクトには手が付いていないので、9のまま残します。',
-  body:['狙われたのは発生可能性と資料の裏づけの2つ。インパクトと現状との連続性には手が付いていない。','発生可能性が7から3へ。プランの対象範囲と、資料に出てくる労働者の所在がずれているという指摘で、因果の第1段の前提が崩れた。','資料の裏づけが6から4へ。資料そのものを否定したのではなく、射程がプランに届いていないという指摘なので、削り幅は限定的である。','なおこの攻撃は、プランを300人以上に絞ったことを前提として使っている。論題適合性の判断が変われば、この攻撃の意味も変わる。両者は連動する。'],
+  body:['狙われたのは発生可能性と資料の裏づけの2つ。インパクトと現状との連続性には手が付いていない。',
+        '発生可能性が7から3へ。9.7％が小規模企業の多い業種に集中しているという指摘と、プランの対象企業にどれだけ当てはまるかが示されていないという指摘で、因果の第1段の前提が示されていない状態になった。崩れたのではなく、示されていないことが明らかになった。',
+        '資料の裏づけが6から4へ。資料そのものを否定したのではなく、射程がプランに届いているか示されていないという指摘なので、削り幅は限定的である。',
+        '年代については 0:57 の質疑で規制後と確認されており、否定側はそこを攻撃していない。エンジンは質疑の回答を記録として保持し、それと食い違う攻撃があれば指摘する。',
+        'なおこの攻撃は、プランを300人以上に絞ったことを前提として使っている。論題適合性の判断が変われば、この攻撃の意味も変わる。両者は連動する。'],
   src:'対応する発言：0:08 の下線部'}),
 L(7,'NA','2:18',`On their importance. <span class="ev">The ten thousand figure counts all deaths from cerebrovascular and cardiac disease among working-age adults.</span> It is not a count of deaths caused by working hours. Their own source does not separate the two.`,`相手の重要性についてです。<b>1万人という数字は、就労年齢の成人における脳血管疾患・心疾患による死亡の全体を数えたものです。</b>労働時間が原因で亡くなった人の数ではありません。相手の資料自体が両者を区別していません。`,
  {kind:'attack',arg:'ADV',hits:{imp:4},k:'攻撃 成立',
@@ -551,10 +563,13 @@ PT(11,'AS','3:08',`インパクトの1万人、あっちの反論に返す時間
 PT(11,'AD','3:11',`業種の話で埋まりそう。そっちは捨てるしかないかもしれない。`),
 PT(11,'ND','3:14',`こっちは、再配置の資料がないって点を突く。ただ新しい資料は出せないから、言い直しになるな。`),
 /* ---------- ⑨ 肯定ディフェンス ---------- */
-L(12,'AD','3:20',`Answering their attack. The cap took effect in 2019; our survey was conducted in 2022. <span class="ev">The nine point seven percent is what remains after the cap, measured after the cap.</span> Their objection assumes our data predates the regulation. It does not.`,`相手の攻撃に応答します。上限規制は2019年施行、私たちの調査は2022年実施です。<b>9.7％は規制の後に残った数値であり、規制の後に測定されたものです。</b>相手の反論は、私たちのデータが規制より古いことを前提にしています。そうではありません。`,
+L(12,'AD','3:20',`Answering their attack. <span class="ev">They say the nine point seven percent is concentrated in transport and construction. In cross-examination they admitted their evidence gives no share for those industries.</span> The concentration they claim has no number behind it. Our figure stands as a nationwide figure.`,`相手の攻撃に応答します。<b>相手は9.7％が運輸や建設に集中していると言いました。しかし質疑で、資料にはその業種の割合が出ていないと認めています。</b>集中しているという主張に数字はありません。私たちの数字は、全国の数字として残ります。`,
  {kind:'defense',arg:'ADV',hits:{prob:5},k:'防御 一部成立',
-  say:'発生可能性が3から5へ。年代の点には応答しましたが、質疑で引き出した業種の割合の話は使いませんでした。使っていれば、もう少し戻せています。',
-  body:['発生可能性が3から5へ。削られた4点のうち2点の回復にとどまる。','否定側の攻撃は「データが規制前である」と「業種がプランの対象外に偏っている」の2点で構成されていた。応答したのは前者だけである。','肯定側は質疑（2:30）で「業種の割合に数字がない」ことを引き出していた。それをここで使えば後者にも応答できたが、使わなかった。引き出した材料を使わなければ回復にはつながらない、という例である。'],
+  say:'発生可能性が3から5へ。質疑で引き出した業種の割合の点は使えましたが、プランの対象企業にどれだけ当てはまるかという核心には答えていません。回復は2点にとどまります。',
+  body:['発生可能性が3から5へ。削られた4点のうち2点の回復にとどまる。',
+        '否定側の攻撃は「業種の偏り」と「プランの対象企業にどれだけ当てはまるか示されていない」の2点で構成されていた。肯定側は質疑（2:30）で引き出した「業種の割合に数字がない」という材料を使い、前者を崩した。',
+        'しかし後者、つまり9.7％のうちどれだけが300人以上の企業で働いているかという核心には触れていない。「全国の数字として残る」と述べただけでは、対象企業に当てはまるかの答えにならない。準備時間（3:11）で年代の話を捨てたのは正しい判断だったが、残った時間を核心に当てられなかった。',
+        '引き出した材料を使えば回復する。しかし核心に答えなければ全部は戻らない、という例である。'],
   src:'対応する発言：2:04 への応答'}),
 L(12,'AD','3:32',`That is our time.`,`以上です。`,
  {kind:'drop',arg:'ADV',hits:{imp:2},k:'落とし を検出',
