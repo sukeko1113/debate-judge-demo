@@ -249,7 +249,9 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .ctot{margin:8px 0 0;padding:6px 9px;background:#EFF2F6;border-radius:3px;font-size:12px;line-height:1.6;color:var(--ink-soft)}
 .ctot b{color:var(--ink);font-size:13px}
 /* 総括比較の吹き出し：広げて、観点ごとの比較を中に出す */
-.bubble.wide{width:min(660px,72%);max-height:calc(100% - 40px);overflow-y:auto}
+/* 通常の吹き出しは pointer-events:none でクリックを透過させているが、
+   総括比較の吹き出しは中をスクロールさせるので、ホイールとスクロールバーを受ける */
+.bubble.wide{width:min(660px,72%);max-height:calc(100% - 40px);overflow-y:auto;pointer-events:auto;overscroll-behavior:contain}
 .bubble.wide .ja{font-size:12.5px;line-height:1.65}
 .bubble .bcmp:empty{display:none}
 .bubble .bcmp{margin-top:4px}
