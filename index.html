@@ -139,6 +139,18 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .arg[data-side=neg] .aoT{color:var(--neg)}
 .arg .at{font-size:12px;color:var(--ink-faint);white-space:nowrap;font-variant-numeric:tabular-nums}
 .arg .at b{font-size:16px;color:var(--ink);font-weight:600}
+.arg .at em{display:block;font-style:normal;font-size:10.5px;color:var(--ink);font-weight:600;margin-top:0;letter-spacing:.02em;line-height:1.3}
+.dim .dw{font-size:10.5px;text-align:right;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.dim .dw.up{color:var(--ink);font-weight:600}
+/* 素点と重み反映後を並べ、判定の差がどこから来たかを繋ぐ */
+.brg{margin-top:8px;padding:7px 9px;background:#EFF2F6;border-radius:3px}
+.brg .bl{font-size:11.5px;line-height:1.5;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.brg .bl span{display:inline-block;min-width:6.4em;font-size:10.5px;color:var(--ink-faint);letter-spacing:.04em}
+.brg .bl b{font-size:13px;color:var(--ink)}
+.brg .bl.on{color:var(--ink)}
+.brg .bl.on b{font-size:15px}
+.brg p{margin:4px 0 0;font-size:10.5px;line-height:1.45;color:var(--ink-faint)}
+.scores.wgt .dim{grid-template-columns:6.6em 1fr 1.6em 2.6em}
 .dim{display:grid;grid-template-columns:6.6em 1fr 1.6em;gap:8px;align-items:center;padding:1.5px 4px;margin:0 -4px;border-radius:2px;transition:background .3s}
 .dim.hit{background:#FFF4D6}
 .dim .dn{font-size:11.5px;color:var(--ink-soft);line-height:1.4}
@@ -270,7 +282,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
     </div>
   </div>
   <aside class="right">
-    <h2 class="panel-h">立論の評価<small>各観点 10点満点</small></h2>
+    <h2 class="panel-h">立論の評価<small id="scoresh">各観点 10点満点</small></h2>
     <div class="key" id="key"></div>
     <div class="scores" id="scores"><p class="empty">再生を始めると、提示された立論がここに追加されます。</p></div>
     <h2 class="panel-h hide" id="cmph">総括：観点ごとの比較<small>重み 1.5 / 1.0 / 0.5</small></h2>
@@ -731,6 +743,10 @@ function state(upto){
   return st;
 }
 const total=s=>DIMS.reduce((a,d)=>a+s.cur[d.id],0);
+/* 重みを掛けた側ごとの合計。両者の差は Σ(d_k×w_k) に一致する */
+const wtotal=(s,wm)=>DIMS.reduce((a,d)=>a+s.cur[d.id]*(wm?wm[d.id]:1),0);
+const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
+const sfmt=n=>(n>0?'+':n<0?'−':'±')+fmt(Math.abs(n));
 /* v19: 重みは 1.5 / 1.0 / 0.5 のいずれかで常に正。したがって d_k×w_k は d_k の符号を保つ。
    総括は重みだけを動かし、個々の観点の勝敗は反転させない。 */
 const cmpW=(dk,c,arena)=>(!arena||c===0||dk===0)?1:(Math.sign(c)===Math.sign(dk)?1.5:.5);
@@ -747,7 +763,8 @@ function judge(st){
   return {rows,raw,wsum,on,aff:total(st.ADV),neg:total(st.DIS),
           side:wsum>0?'肯定側':wsum<0?'否定側':'引き分け',margin:Math.abs(wsum)};
 }
-function band(dims,cur,peak,foe,hits,key){
+/* wmap を渡すと各行に総括の重みを出す。総括の判定前は null で従来どおり3列。 */
+function band(dims,cur,peak,foe,hits,key,wmap){
   return dims.map(d=>{
     const v=cur[d.id],p=peak?peak[d.id]:v;
     const cells=Array.from({length:10},(_,i)=>{const n=i+1;
@@ -756,20 +773,38 @@ function band(dims,cur,peak,foe,hits,key){
       return '<span class="cell"></span>';}).join('');
     const isHit=hits&&hits.arg===key&&hits.dims.includes(d.id);
     const holdT=(hits&&hits.hold===d.id)?'<span class="tagline tag-hold">保留</span>':'';
-    return '<div class="dim'+(isHit?' hit':'')+'"><span class="dn">'+d.n+holdT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span></div>';
+    const w=wmap?'<span class="dw'+(wmap[d.id]!==1?' up':'')+'">×'+wmap[d.id].toFixed(1)+'</span>':'';
+    return '<div class="dim'+(isHit?' hit':'')+'"><span class="dn">'+d.n+holdT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span>'+w+'</div>';
   }).join('');
 }
 function drawScores(st,hits){
-  const ak=Object.keys(st).filter(k=>ARGS[k]), sk=Object.keys(st).filter(k=>k.startsWith('S:'));
+  const ak=Object.keys(st).filter(k=>ARGS[k]);
+  const v=judge(st), wm=(v&&v.on)?Object.fromEntries(v.rows.map(r=>[r.d.id,r.w])):null;
+  $('scores').classList.toggle('wgt',!!wm);
+  $('scoresh').textContent=wm?'各観点 10点満点　×印は総括の重み':'各観点 10点満点';
   if(!ak.length){$('scores').innerHTML='<p class="empty">再生を始めると、提示された立論がここに追加されます。</p>'}
   else $('scores').innerHTML=ak.map(k=>{
     const s2=st[k],m=ARGS[k],foe=m.side==='aff'?'#8C3A46':'#1D4E6B';
     let tag=s2.drop?'<span class="tagline tag-drop">落としあり</span>':'';
     if(s2.topic) tag+='<span class="tagline tag-topic">論題適合性 要確認</span>';
-    const rows=band(DIMS,s2.cur,s2.peak,foe,{arg:hits&&hits.arg,dims:(hits&&hits.dims)||[],hold:s2.hold},k);
-    return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>'+total(s2)+'</b> / 50</span></div>'+rows+'</div>';
-  }).join('');
+    const rows=band(DIMS,s2.cur,s2.peak,foe,{arg:hits&&hits.arg,dims:(hits&&hits.dims)||[],hold:s2.hold},k,wm);
+    const wt=wm?'<em>重み反映後 '+fmt(wtotal(s2,wm))+'</em>':'';
+    return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>'+total(s2)+'</b> / 50'+wt+'</span></div>'+rows+'</div>';
+  }).join('')+bridge(st,v,wm);
   drawCmp(st);
+}
+/* 素点（26対27）と重み反映後（30.5対34）を並べ、判定の 3.5 がどこから来たかを繋ぐ。
+   点数表を先に読んだ人が、解説の「3.5点差」で混同しないようにするための区画。 */
+function bridge(st,v,wm){
+  if(!wm) return '';
+  const a=wtotal(st.ADV,wm), n=wtotal(st.DIS,wm);
+  const moved=v.rows.filter(r=>r.w!==1)
+    .map(r=>r.d.n+'（'+(r.c>0?'肯定':'否定')+'が制し'+r.w.toFixed(1)+'倍）').join('、');
+  return '<div class="brg">'+
+    '<div class="bl"><span>素点</span>肯定 '+total(st.ADV)+' − 否定 '+total(st.DIS)+' ＝ <b>'+sfmt(v.raw)+'</b></div>'+
+    '<div class="bl on"><span>重み反映後</span>肯定 '+fmt(a)+' − 否定 '+fmt(n)+' ＝ <b>'+sfmt(v.wsum)+'</b>　'+v.side+'</div>'+
+    '<p>総括は点数を持たず、観点ごとの重みとして効く。重みが動いたのは'+moved+
+    '。判定はこの重み反映後の差で決まる。</p></div>';
 }
 /* v19 総括：観点ごとの比較。4状態（肯定が制した／否定が制した／決着なし／土俵外）を色と記号で区別する */
 const CMPLABEL={aff:['●','肯定が制した'],neg:['●','否定が制した'],none:['—','決着なし'],off:['·','土俵外']};
