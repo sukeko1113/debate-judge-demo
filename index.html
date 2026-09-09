@@ -210,13 +210,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .brk tbody tr.wt th,.brk tbody tr.wt td{color:var(--ink);font-weight:600}
 /* 何と何が比べられ、どちらがどういう理由で優勢だったかを、その観点の行の直下に置く */
 .brk tr.dt td{text-align:left;padding:3px 5px 6px;border-bottom:1px solid var(--rule-fine)}
-.brk .cmv{margin:0 0 1px;font-size:10.5px;line-height:1.4;color:var(--ink-soft);
-  padding-left:8px;border-left:2px solid var(--rule-fine)}
-.brk .cmv[data-side=aff]{border-left-color:var(--aff)}
-.brk .cmv[data-side=neg]{border-left-color:var(--neg)}
-.brk .cmv span{font-size:9.5px;letter-spacing:.04em;color:var(--ink-faint);margin-right:6px}
-.brk .cmr{margin:2px 0 0;font-size:10.5px;line-height:1.4;color:var(--ink-faint)}
-.brk .cmr b{color:var(--ink);font-weight:600}
+.brk .cmr{margin:0;font-size:10.5px;line-height:1.4;color:var(--ink-faint)}
 .brk tfoot .raw th,.brk tfoot .raw td{color:var(--ink-faint);border-bottom:0;border-top:1px solid var(--rule)}
 .brk tfoot .wsum th,.brk tfoot .wsum td{color:var(--ink);font-weight:700;border-bottom:0;font-size:12px}
 /* 結論と、素点差→重み反映後の対比。表が見切れても結論だけは必ず読めるよう先頭に置く */
@@ -375,23 +369,26 @@ const DIMS=[{id:'inh',n:'現状との連続性',c:'#2F7A6E'},{id:'prob',n:'発�
    c は +1 肯定が制した / -1 否定が制した / 0 決着なし。
    arena=false の観点は比較の土俵にせず、重みを常に 1.0 に固定する。 */
 const SUMCMP={
-  inh: {arena:false,c: 0,short:'試合を通じて一度も争われていない',why:'試合を通じて一度も争われていない',src:'該当する比較の主張なし'},
+  inh: {arena:false,c: 0,
+        short:'双方とも攻撃でも総括でも触れず、立論の差が残った',
+        why:'肯定側は立論で、規制が入った後もなお長時間労働が残っていると述べ、否定側は立論で、プラン導入後に新しく生じる被害だと述べた。ただし双方とも攻撃で相手に手を付けず、総括でも触れなかった。立論の差がそのまま残っている。土俵にしないので重みは1.0に固定する。',
+        src:'該当する比較の主張なし'},
   prob:{arena:true, c: 0,
-        aff:'相手のデメリットは、プランが触れない規模の企業で測られたものだ',
-        neg:'相手のメリットは、相手自身の資料に出てくる労働者に届いていない',
-        short:'互いに言い直しただけで噛み合わない',
-        why:'互いに自分の攻撃を言い直しただけで、相手の指摘に答えていない',src:'対応する発言：3:58 ／ 4:14'},
+        short:'双方とも総括で自分の攻撃を言い直しただけで噛み合わない',
+        why:'肯定側は総括で、相手のデメリットはプランが触れない規模の企業で測られたものだと述べた。否定側は総括で、相手のメリットは相手自身の資料に出てくる労働者に届いていないと述べた。互いに攻撃で述べたことを言い直しただけで、相手の指摘には答えていない。決着がつかないので重みは動かさない。',
+        src:'対応する発言：3:58 ／ 4:14'},
   imp: {arena:true, c:-1,
-        aff:'防ぐことのできたはずの死である',
-        neg:'その数字は、はじめから被害の数字ではなかった',
-        short:'肯定は落としに触れず、否定の否認が通った',
-        why:'肯定は落とし（3:32）に触れないまま自分の主張を繰り返し、否定の否認が通った',src:'対応する発言：4:14'},
+        short:'否定側は攻撃で数字の中身を突き、肯定側は防御でも総括でも触れなかった',
+        why:'否定側は攻撃で、1万人という数字は脳血管疾患・心疾患による死亡の全体であって労働時間が原因の死者数ではないと指摘した。肯定側は防御でこれに応答せず、総括でも「防ぐことのできたはずの死」と価値を言い直すにとどまり、数え方には触れなかった。防御で応答しなかったため、総括では反論そのものができない。優位の否定が制したので重みを1.5に上げた。',
+        src:'対応する発言：2:18 ／ 4:14'},
   sol: {arena:true, c:+1,
-        aff:'生産の落ち込みは取り戻せるが、命は取り戻せない',
-        neg:null,
-        short:'肯定だけが軸を名指しし、否定は無応答',
-        why:'肯定が回復可能性という軸を名指しして両者を載せ、否定はその軸に応答しなかった',src:'対応する発言：4:06'},
-  evd: {arena:false,c: 0,short:'記録から評価する項目。射程は発生可能性で扱う',why:'資料の質は記録から評価する項目であり、射程をめぐる指摘は発生可能性の土俵で扱う',src:'該当する比較の主張なし'}
+        short:'肯定側が総括で回復可能性の軸を示し、否定側は乗らなかった',
+        why:'肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないとして、回復可能性という軸を示し両者をその軸に載せた。否定側は総括で自分のデメリットが崩れずに残っていると述べるにとどまり、その軸には乗らなかった。優位の肯定が制したので重みを1.5に上げた。',
+        src:'対応する発言：4:06 ／ 4:14'},
+  evd: {arena:false,c: 0,
+        short:'攻撃では争ったが、総括では比較の軸にならなかった',
+        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告が10人未満の企業を調べたものだと述べ、否定側は肯定側の因果の第2段以降に出典がないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないので重みは1.0に固定する。',
+        src:'該当する比較の主張なし'}
 };
 const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
 document.getElementById('key').innerHTML=DIMS.map(d=>'<span><i style="background:'+d.c+'"></i>'+d.n+'</span>').join('');
@@ -744,7 +741,7 @@ function judge(st){
   const on=!!st.CMP;
   const rows=DIMS.map(d=>{
     const dk=st.ADV.cur[d.id]-st.DIS.cur[d.id],m=SUMCMP[d.id],w=on?cmpW(dk,m.c,m.arena):1;
-    return {d,dk,w,prod:dk*w,c:on?m.c:0,arena:m.arena,why:m.why,short:m.short,src:m.src,aff:m.aff,neg:m.neg};
+    return {d,dk,w,prod:dk*w,c:on?m.c:0,arena:m.arena,why:m.why,short:m.short,src:m.src};
   });
   const raw=rows.reduce((a,r)=>a+r.dk,0),wsum=rows.reduce((a,r)=>a+r.prod,0);
   return {rows,raw,wsum,on,aff:total(st.ADV),neg:total(st.DIS),
@@ -815,7 +812,7 @@ function drawBrk(v){
   if(!v) return '';
   /* 整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
      どこで小数が生まれたのかが列を追うだけで分かる。 */
-  const si=n=>(n>0?'+':n<0?'−':'±')+Math.abs(n);
+  const ld=n=>n===0?'互角':(n>0?'肯定':'否定')+'+'+Math.abs(n);
   const s1=n=>(n>0?'+':n<0?'−':'±')+(Number.isInteger(n)?Math.abs(n):Math.abs(n).toFixed(1));
   const flip=v.raw!==0&&Math.sign(v.raw)!==Math.sign(v.wsum);
   return '<p class="brkv">'+v.side+'、'+Math.abs(v.wsum).toFixed(1)+'点差</p>'+
@@ -823,18 +820,10 @@ function drawBrk(v){
     (flip?'　総括の比較で向きが変わった。':'')+'</p>'+
     '<table class="brk">'+
     '<thead><tr><th>観点</th><th>立論の差</th><th>重み</th><th>効いた差</th></tr></thead><tbody>'+
-    v.rows.map(r=>{
-      const won=r.c>0?'肯定が制した':r.c<0?'否定が制した':r.arena?'決着なし':'比較の土俵にしていない';
-      const wr=r.w===1.5?'優位の'+(r.c>0?'肯定':'否定')+'が制したので重みを1.5に上げた'
-             :r.w===0.5?'劣勢の'+(r.c>0?'肯定':'否定')+'が制したので重みを0.5に下げた'
-             :r.arena?'決着がつかないので重みは動かさない':'土俵にしないので重みは1.0に固定する';
-      const side=(k,t,f)=>'<p class="cmv" data-side="'+k+'"><span>'+t+'</span>'+f+'</p>';
-      const claims=r.arena?side('aff','肯定',r.aff)+side('neg','否定',r.neg||'応答なし'):'';
-      return '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+si(r.dk)+
-        '</td><td>×'+r.w.toFixed(1)+'</td><td>'+s1(r.prod)+'</td></tr>'+
-        '<tr class="dt"><td colspan="4">'+claims+
-        '<p class="cmr"><b>'+won+'。</b>'+r.why+'。'+wr+'。</p></td></tr>';
-    }).join('')+
+    v.rows.map(r=>
+      '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+ld(r.dk)+
+        '</td><td>×'+r.w.toFixed(1)+(r.arena?'':' 固定')+'</td><td>'+s1(r.prod)+'</td></tr>'+
+      '<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>').join('')+
     '</tbody><tfoot><tr class="raw"><th colspan="3">素点差の合計</th><td>'+s1(v.raw)+'</td></tr>'+
     '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>';
 }
