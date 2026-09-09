@@ -115,7 +115,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .bubble:after{content:"";position:absolute;bottom:-9px;width:18px;height:18px;background:#fff;border-right:1px solid var(--rule-fine);border-bottom:1px solid var(--rule-fine);transform:rotate(45deg)}
 .bubble[data-side=aff]:after{left:42px}
 .bubble[data-side=neg]:after{right:42px}
-.bubble[data-side=prep]:after{display:none}
+.bubble[data-side=prep]:after,.bubble.wide:after{display:none}  /* 広い吹き出しは overflow:auto なので、絶対配置のしっぽがスクロール量に混ざる */
 
 .jbubble{position:absolute;left:50%;top:12px;transform:translateX(-50%) scale(.9);background:var(--ink);color:#fff;padding:5px 15px;border-radius:14px;
   font-size:12.5px;letter-spacing:.05em;opacity:0;transition:opacity .3s,transform .3s;z-index:6;white-space:nowrap;max-width:44%;overflow:hidden;text-overflow:ellipsis}
@@ -256,6 +256,10 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .bubble .bcmp:empty{display:none}
 .bubble .bcmp{margin-top:4px}
 .bubble .bcmp .cstep{background:#F7F9FB}
+.bubble .brkv{margin:6px 0 1px;font-size:15px;font-weight:600;color:var(--ink);letter-spacing:.02em}
+.bubble .brkd{margin:0 0 4px;font-size:12px;line-height:1.5;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.bubble .brkd b{color:var(--ink);font-weight:600}
+.bubble .brk{font-size:12px}
 .note[data-kind=sumcmp]{background:#F4F8F5;padding-right:10px}
 .note .src{font-size:11.5px;color:var(--ink-faint);margin-top:5px}
 .foot{padding:15px 18px 32px;font-size:12px;color:var(--ink-faint);border-top:1px solid var(--rule);line-height:1.75}
@@ -311,7 +315,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
     </div>
   </div>
   <aside class="right">
-    <h2 class="panel-h">立論の評価<small id="scoresh">各観点 10点満点</small></h2>
+    <h2 class="panel-h">論点の評価<small id="scoresh">各観点10点満点・攻防を反映</small></h2>
     <div class="key" id="key"></div>
     <div class="scores" id="scores"><p class="empty">再生を始めると、提示された立論がここに追加されます。</p></div>
     <h2 class="panel-h hide" id="cmph">総括：観点ごとの比較<small>重み 1.5 / 1.0 / 0.5</small></h2>
@@ -424,11 +428,11 @@ const SUMCMP={
         src:'対応する発言：2:18 ／ 4:14'},
   sol: {arena:true, c:+1,
         short:'肯定側が総括で回復可能性の軸を示し、否定側は乗らなかった',
-        why:'肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないとして、回復可能性という軸を示し両者をその軸に載せた。否定側は総括で自分のデメリットが崩れずに残っていると述べるにとどまり、その軸には乗らなかった。優位の肯定が制したので重みを1.5に上げた。',
+        why:'この観点はメリット側では被害をどこまで減らせるか、デメリット側では被害を避けられるかを見る。回復可能性は、起きた被害を元に戻せるかを問うもので、被害をどこまで消せるかという同じ問いに属するため、この観点の土俵として扱う。肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないとして、回復可能性という軸を示し両者をその軸に載せた。否定側は総括で自分のデメリットが崩れずに残っていると述べるにとどまり、その軸には乗らなかった。優位の肯定が制したので重みを1.5に上げた。',
         src:'対応する発言：4:06 ／ 4:14'},
   evd: {arena:false,c: 0,
         short:'攻撃では争ったが、総括では比較の軸にならなかった',
-        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告が10人未満の企業を調べたものだと述べ、否定側は肯定側の因果の第2段以降に出典がないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないので重みは1.0に固定する。',
+        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告が10人未満の企業を調べたものだと述べ、否定側は肯定側の資料に出てくる労働者がプランの届く労働者ではないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないので重みは1.0に固定する。',
         src:'該当する比較の主張なし'}
 };
 const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
@@ -509,7 +513,7 @@ PT(6,'NC','1:53',`1万人の数字も怪しい。過労が原因の死じゃな�
 PT(6,'AD','1:57',`向こうは資料の範囲を突いてくると思う。300人以上に絞ったところ。`),
 PT(6,'AA','2:00',`年代なら答えられる。業種の話まで来たら、そこは弱い。`),
 /* ---------- ⑤ 否定アタック ---------- */
-L(7,'NA','2:04',`On their process. <span class="ev">Their nine point seven percent is the residue the overtime cap could not remove, concentrated in transport and construction — industries their plan does not cover.</span> Their plan applies to firms of three hundred or more. The workers in their own evidence are not the workers their plan reaches.`,`相手の発生過程についてです。<b>9.7％は残業上限規制が取り除けなかった残りの部分であり、運輸や建設など、相手のプランが対象としない業種に集中しています。</b>相手のプランは300人以上の企業に適用されます。相手自身の資料に出てくる労働者は、プランが届く労働者ではありません。`,
+L(7,'NA','2:04',`On their process. <span class="ev">Their nine point seven percent was measured before the overtime cap took effect, and it is concentrated in transport and construction — industries made up mostly of small firms that their plan does not cover.</span> Their plan applies to firms of three hundred or more. The workers in their own evidence are not the workers their plan reaches.`,`相手の発生過程についてです。<b>9.7％は残業上限規制が施行される前に測られた数字であり、しかも運輸や建設など、小規模な企業が大半を占めて相手のプランが届かない業種に集中しています。</b>相手のプランは300人以上の企業に適用されます。相手自身の資料に出てくる労働者は、プランが届く労働者ではありません。`,
  {kind:'attack',arg:'ADV',hits:{prob:3,evd:4},k:'攻撃 成立',
   say:'狙われたのは発生可能性と資料の裏づけです。発生可能性が7から3へ。インパクトには手が付いていないので、9のまま残します。',
   body:['狙われたのは発生可能性と資料の裏づけの2つ。インパクトと現状との連続性には手が付いていない。','発生可能性が7から3へ。プランの対象範囲と、資料に出てくる労働者の所在がずれているという指摘で、因果の第1段の前提が崩れた。','資料の裏づけが6から4へ。資料そのものを否定したのではなく、射程がプランに届いていないという指摘なので、削り幅は限定的である。','なおこの攻撃は、プランを300人以上に絞ったことを前提として使っている。論題適合性の判断が変われば、この攻撃の意味も変わる。両者は連動する。'],
@@ -606,7 +610,7 @@ L(17,'J','—',`<b>Weighing the summaries.</b> Each issue is checked for whether
   src:'対応する発言：3:58 ／ 4:06 ／ 4:14'}),
 
 /* ---------- 判定 ---------- */
-L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Affirmative {aff} / Negative {neg}. Two items require human confirmation.`,`<b>暫定判定：{side}、{margin}点差。</b>肯定側 {aff} 対 否定側 {neg}。確定の前に、人による確認が必要な項目が2件あります。`,
+L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Raw score {aff} / {neg} ({raw}-point gap) → after weighting {affW} / {negW}. Two items require human confirmation.`,`<b>暫定判定：{side}、{margin}点差。</b>素点 肯定 {aff} 対 否定 {neg}（{raw}点差）→ 重み反映後 肯定 {affW} 対 否定 {negW}。確定の前に、人による確認が必要な項目が2件あります。`,
  {kind:'verdict',k:'判定と、確定までの手続き',hold:{arg:'DIS',dim:'imp'},
   say:'暫定判定は{side}、{margin}点差です。素点は{raw}点差ですが、総括で{movedN}つの観点に決着がつき、重みが動きました。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は論題適合性です。論題は企業の規模に触れていないのに、肯定側のプランは従業員300人以上に限ると述べました。これが論題定義の範囲外と判定されれば、肯定側の{aff}点はゼロになります。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
   body:['〔この試合について〕',
@@ -623,7 +627,7 @@ L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Affirm
         '〔このエンジンの立場〕',
         'エンジンは判定を出す。人間ジャッジとの勝敗一致率を指標として設計しており、結論を避ける仕組みではない。',
         'ただし判定だけを出すのではない。どの観点が、いつ、どの発言によって動いたかを、すべて元の発言まで遡れる形で残す。だから人は結論を鵜呑みにせず、過程を検証したうえで確定できる。',
-        '確定するのは人である。エンジンの役割は、確定に必要な材料を漏れなく揃え、判断できない論点を判定に混ぜずに切り分けて示すことにある。今回の「論題適合性・要確認」と「判定保留」がそれにあたる。分からないものを分からないまま出すのが設計であり、これは判定を放棄しているのとは違う。']})
+        '確定するのは人である。エンジンの役割は、確定に必要な材料を漏れなく揃え、判断が定まらない論点を暫定値のまま計算に含めたうえで、保留の印を付けて切り分けて示すことにある。今回の「論題適合性・要確認」と「判定保留」がそれにあたり、この判定は保留項目が人の手で確認されるまで暫定である。分からないものを分からないまま出すのが設計であり、これは判定を放棄しているのとは違う。']})
 
 ];
 
@@ -841,7 +845,7 @@ function drawScores(st,hits){
   const wy=(v&&v.on)?Object.fromEntries(v.rows.filter(r=>r.w!==1)
         .map(r=>[r.d.id,'総括で'+(r.c>0?'肯定':'否定')+'が制した'])):null;
   $('scores').classList.toggle('wgt',!!wm);
-  $('scoresh').textContent=wm?'各観点 10点満点　×印は総括の比較で動いた重み':'各観点 10点満点';
+  $('scoresh').textContent=wm?'攻防を反映・×印は総括で動いた重み':'各観点10点満点・攻防を反映';
   if(!ak.length){$('scores').innerHTML='<p class="empty">再生を始めると、提示された立論がここに追加されます。</p>'}
   else $('scores').innerHTML=ak.map(k=>{
     const s2=st[k],m=ARGS[k],foe=m.side==='aff'?'#8C3A46':'#1D4E6B';
@@ -880,7 +884,7 @@ function drawCmp(st){
     const state=!r.arena?'off':r.c>0?'aff':r.c<0?'neg':'none';
     const w=r.w>1?'up':r.w<1?'down':'flat';
     const [mark,label]=CMPLABEL[state];
-    const lead=r.dk===0?'立論は互角':'立論 '+(r.dk>0?'肯定':'否定')+'+'+Math.abs(r.dk);
+    const lead=r.dk===0?'総括前は互角':'総括前 '+(r.dk>0?'肯定':'否定')+'+'+Math.abs(r.dk);
     const rule=WRULE(w,r.c);
     return '<div class="cmpr" data-c="'+state+'" data-w="'+w+'">'+
       '<div class="cnw"><span class="cn">'+r.d.n+'</span>'+
@@ -906,22 +910,22 @@ function vnum(v){
           rawSide:v.raw>0?'肯定側':v.raw<0?'否定側':'引き分け'};
 }
 /* 観点ごとの d_k・w_k・積と、素点差の合計／重み反映後の合計を並べる */
-function drawBrk(v){
+function drawBrk(v,prose=true){
   if(!v) return '';
   /* 整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
      どこで小数が生まれたのかが列を追うだけで分かる。 */
   const ld=n=>n===0?'互角':(n>0?'肯定':'否定')+'+'+Math.abs(n);
   const s1=n=>(n>0?'+':n<0?'−':'±')+(Number.isInteger(n)?Math.abs(n):Math.abs(n).toFixed(1));
   const flip=v.raw!==0&&Math.sign(v.raw)!==Math.sign(v.wsum);
-  return '<p class="brkv">'+v.side+'、'+Math.abs(v.wsum).toFixed(1)+'点差</p>'+
+  return '<p class="brkv">暫定判定　'+v.side+'、'+Math.abs(v.wsum).toFixed(1)+'点差</p>'+
     '<p class="brkd">素点差 '+s1(v.raw)+'（'+vnum(v).rawSide+'）　→　重み反映後 <b>'+s1(v.wsum)+'</b>（'+v.side+'）'+
     (flip?'　総括の比較で向きが変わった。':'')+'</p>'+
     '<table class="brk">'+
-    '<thead><tr><th>観点</th><th>立論の差</th><th>重み</th><th>効いた差</th></tr></thead><tbody>'+
+    '<thead><tr><th>観点</th><th>総括前の差</th><th>重み</th><th>効いた差</th></tr></thead><tbody>'+
     v.rows.map(r=>
       '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+ld(r.dk)+
         '</td><td>×'+r.w.toFixed(1)+(r.arena?'':' 固定')+'</td><td>'+s1(r.prod)+'</td></tr>'+
-      '<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>').join('')+
+      (prose?'<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>':'')).join('')+
     '</tbody><tfoot><tr class="raw"><th colspan="3">素点差の合計</th><td>'+s1(v.raw)+'</td></tr>'+
     '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>';
 }
@@ -939,7 +943,7 @@ function cmpSteps(v,st){
            :r.w===0.5?'差は'+up+'側に付いたままなので、0.5倍で半分に圧縮されるだけで'+up+'側の優位は消えない。'
            :'1.0を掛けても差は変わらない。';
     return '<div class="cstep" data-c="'+(r.arena?(r.c>0?'aff':r.c<0?'neg':'none'):'off')+'">'+
-      '<div class="csh"><b>'+M[i]+'　'+r.d.n+'</b><span>肯定'+a+' 対 否定'+n+'、'+lead+'</span></div>'+
+      '<div class="csh"><b>'+M[i]+'　'+r.d.n+'</b><span>総括前　肯定'+a+' 対 否定'+n+'、'+lead+'</span></div>'+
       '<div class="cjd">'+label+'</div>'+
       '<p class="cwhy">'+r.why+'</p>'+
       '<p class="cwy">'+wy+'</p>'+
@@ -1000,10 +1004,12 @@ function goto(i){
   const VB=vnum(judge(state(i)));
   $('ben').innerHTML=tpl(ln.en,VB); $('bja').innerHTML=tpl(ln.ja,VB); bubble.classList.add('show');
   /* 総括比較では、観点ごとの比較そのものをジャッジの吹き出しに出す。右列を見なくても読めるように。 */
-  const isCmp=!!(ln.ev&&ln.ev.kind==='sumcmp');
-  if(isCmp){ const S=state(i), vv=judge(S); $('bcmp').innerHTML=(vv&&vv.on)?cmpSteps(vv,S):''; }
+  const kind=ln.ev&&ln.ev.kind, isCmp=kind==='sumcmp', isVd=kind==='verdict';
+  if(isCmp||isVd){ const S=state(i), vv=judge(S);
+    /* 判定では結論・対比・数表を吹き出しに出す。観点ごとの散文は総括比較で済んでいるので省く */
+    $('bcmp').innerHTML=(vv&&vv.on)?(isCmp?cmpSteps(vv,S):drawBrk(vv,false)):''; }
   else $('bcmp').innerHTML='';
-  bubble.classList.toggle('wide',isCmp);
+  bubble.classList.toggle('wide',isCmp||isVd);
   bubble.querySelectorAll('.ev').forEach(el=>{
     el.className='ev '+(ln.ev&&(ln.ev.kind==='violation'||ln.ev.kind==='topicality')?'warn':side==='neg'?'neg':'aff');
   });
@@ -1016,8 +1022,9 @@ function goto(i){
   const hits=(ev&&ev.hits)?{arg:ev.arg,dims:Object.keys(ev.hits)}:null;
   drawScores(state(i),hits); drawNotes(i);
   /* 判定では内訳表を先頭に置くため、末尾ではなく判定 note の先頭に合わせる */
+  /* 最新の note の先頭に合わせる。末尾に合わせると、長い解説では冒頭が隠れて途中から読むことになる */
   const nb=$('notes'), lastNote=nb.lastElementChild;
-  if(ev&&ev.kind==='verdict'&&lastNote) nb.scrollTop+=lastNote.getBoundingClientRect().top-nb.getBoundingClientRect().top;
+  if(lastNote) nb.scrollTop+=lastNote.getBoundingClientRect().top-nb.getBoundingClientRect().top;
   else nb.scrollTop=nb.scrollHeight;
   /* 判定に着いたら、根拠である比較パネルを先頭に寄せる。結論だけが目に入る状態を避ける。
      決着した観点は一瞬だけ光らせて、どこが動いたのかを示す。 */
