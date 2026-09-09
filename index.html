@@ -142,6 +142,9 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .arg .at em{display:block;font-style:normal;font-size:10.5px;color:var(--ink);font-weight:600;margin-top:0;letter-spacing:.02em;line-height:1.3}
 .dim .dw{font-size:10.5px;text-align:right;color:var(--ink-faint);font-variant-numeric:tabular-nums}
 .dim .dw.up{color:var(--ink);font-weight:600}
+.dim .dwy{grid-column:1/5;text-align:right;font-size:9.5px;line-height:1.3;color:var(--ink-faint);margin-top:1px}
+@keyframes cmpflash{0%,100%{background:transparent}25%{background:#FFF0C4}}
+.cmpr.flash{animation:cmpflash 1.1s ease-out 2}
 /* 素点と重み反映後を並べ、判定の差がどこから来たかを繋ぐ */
 .brg{margin-top:8px;padding:7px 9px;background:#EFF2F6;border-radius:3px}
 .brg .bl{font-size:11.5px;line-height:1.5;color:var(--ink-soft);font-variant-numeric:tabular-nums}
@@ -242,6 +245,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 }
 @media(prefers-reduced-motion:reduce){
   .actor,.cell,.bubble,.jbubble,.dim,.mat{transition:none}
+  .cmpr.flash{animation:none}
   .actor.talking .body,.actor.talking .mouth,.actor.huddle .body,.actor.huddle:after{animation:none}
 }
 </style>
@@ -559,11 +563,15 @@ L(16,'NS','4:24',`That is our summary.`,`以上で総括を終わります。`,
 /* ---------- 判定 ---------- */
 L(17,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Affirmative {aff} / Negative {neg}. Two items require human confirmation.`,`<b>暫定判定：{side}、{margin}点差。</b>肯定側 {aff} 対 否定側 {neg}。確定の前に、人による確認が必要な項目が2件あります。`,
  {kind:'verdict',k:'判定と、確定までの手続き',hold:{arg:'DIS',dim:'imp'},
-  say:'暫定判定は{side}、{margin}点差です。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は論題適合性です。論題は企業の規模に触れていないのに、肯定側のプランは従業員300人以上に限ると述べました。これが論題定義の範囲外と判定されれば、肯定側の{aff}点はゼロになります。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。{margin}点差の勝敗がその揺れた観点に乗っています。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
+  say:'暫定判定は{side}、{margin}点差です。素点は{raw}点差ですが、総括で{movedN}つの観点に決着がつき、重みが動きました。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は論題適合性です。論題は企業の規模に触れていないのに、肯定側のプランは従業員300人以上に限ると述べました。これが論題定義の範囲外と判定されれば、肯定側の{aff}点はゼロになります。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
   body:['〔この試合について〕',
-        '{margin}点差である。勝敗を分けたのはインパクトの落とし（3:32）である。','ここで応答して4を守れていれば、素点は肯定側28対否定側27となり、素点だけを見れば肯定側が上回っていた。それでも判定は覆らない。インパクトは否定側が総括で比較を制した観点であり、重み1.5が掛かる。加重後は−0.5で、なお否定側が残る。逆転するには5以上を守る必要があった。','素点では逆転するのに、加重後では逆転しない。これが総括の重みが働いているということである。総括で比較を制した観点は、その観点の差が1.5倍で効く。削られた点そのものは戻らないが、どの観点を試合の決め手として扱うかは総括で動く。',
-        '総括には独立した点数を与えていない。総括が動かすのは、観点ごとの重みだけである。上の内訳表の w の列がそれにあたる。','重みは三段階ある。自分が優位な観点で比較を制せば1.5、決着がつかなければ1.0、劣勢な観点で相手に比較を制し返されれば0.5に下がる。この試合では0.5は生じていない。0.5が出るのは、その観点で劣勢な側が総括で比較を制した場合である。たとえば肯定側がインパクトで比較を制していれば、重みは0.5に下がり、−6の差は−3.0に圧縮された。それでも符号は変わらず、インパクトが否定側有利であることは動かない。','重みは1.5・1.0・0.5のいずれかで常に正である。したがって立論で負けている観点が、総括によって勝ちに転じることはない。削られた点は、削られたステージで取り返すしかない。総括が変えられるのは、どの観点をどれだけ効かせるかだけである。',
-        '確定の前に、人が確認すべき項目が2件ある。','1件目は論題適合性である。論題は「日本政府は企業に週休三日制の導入を義務づけるべきである」であり、企業の規模には触れていない。ところが肯定側のプランは冒頭で「従業員300人以上の企業に限る」と述べた。従業員300人未満の企業、つまり日本の企業の大多数が、はじめから対象の外に置かれている。','この限定が論題定義の範囲内かどうかは、事前配布の定義文書を見なければ決まらない。範囲外と判定されれば、規定によりこのメリットからのAdvantageはジャッジが無視するため、肯定側の{aff}点はゼロになる。{margin}点差どころの話ではなくなる。だからこれは最優先で確認すべき項目である。',
+        '素点は肯定{aff}対否定{neg}で{raw}点差である。ただし総括で{movedN}つの観点に決着がついたため、その重みを1.5倍に反映すると、肯定{affW}対否定{negW}となり、{margin}点差に開く。',
+        'インパクトは否定側が制した。否定側は攻撃で、1万人という数字は脳血管疾患・心疾患による死亡の全体であって労働時間が原因の死者数ではないと指摘した。肯定側は防御でこれに応答せず、総括でも「防ぐことのできたはずの死」と価値を言い直すにとどまり、数え方には触れなかった。防御で応答しなかったため、総括では反論そのものができない。同じ土俵に否定側の否認だけが残った。',
+        '解決性・不可避性は肯定側が制した。肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないとして、回復可能性という軸を示し両者をその軸に載せた。否定側は総括で自分のデメリットが崩れずに残っていると述べるにとどまり、その軸には乗らなかった。',
+        '残る三つは重みが動いていない。発生可能性は双方が自分の攻撃を言い直しただけで噛み合わず、決着がつかなかった。現状との連続性と資料の裏づけは、どちらの総括でも比較の軸にならなかった。',
+        '勝敗を分けたのはインパクトである。肯定側が防御で応答して4を守り、総括でも同じ土俵に立っていれば、この観点の重みは動かず、結論は逆転していた。',
+        '重みは1.5・1.0・0.5の三段階で、いずれも正である。自分が優位な観点で比較を制せば1.5、決着がつかなければ1.0、劣勢な観点で相手に制し返されれば0.5に下がる。この試合では0.5は生じていない。重みが常に正であるため、立論で負けている観点が総括によって勝ちに転じることはない。',
+        'なお、確定の前に人による確認が必要な項目が2件ある。','1件目は論題適合性である。論題は「日本政府は企業に週休三日制の導入を義務づけるべきである」であり、企業の規模には触れていない。ところが肯定側のプランは冒頭で「従業員300人以上の企業に限る」と述べた。従業員300人未満の企業、つまり日本の企業の大多数が、はじめから対象の外に置かれている。','この限定が論題定義の範囲内かどうかは、事前配布の定義文書を見なければ決まらない。範囲外と判定されれば、規定によりこのメリットからのAdvantageはジャッジが無視するため、肯定側の{aff}点はゼロになる。{margin}点差どころの話ではなくなる。だからこれは最優先で確認すべき項目である。',
         'なお否定側はこの点を一度も争っていない。争っていれば、発生可能性を削るより大きな効果があった可能性が高い。エンジンは「使われなかった攻め手」としてこれを記録する。勝敗には反映しないが、試合後の振り返りでは最も価値のある情報になる。',
         '2件目は否定側のインパクト8である。同じ試合を複数回採点したところ、この観点だけ値が散らばり、閾値を超えた。エンジンが安定した一つの値を出せていないという意味であり、値が間違っているという意味ではない。','散らばる理由ははっきりしている。この8点は「雇用の7割」という数字と、「傷つくのは肯定側が守ろうとする相手と同じ低所得労働者だ」という価値づけの二つで支えられている。後者に数字はない。そして肯定側は、この価値づけを試合を通じて一度も攻撃していない。','攻撃されていれば、その反論の内容が採点を固定する手がかりになる。攻撃されないまま残った価値の主張には、判断を固定する材料がどこにもない。だから採点のたびに値が動く。攻撃されなかった論点ほど採点が不安定になるというのは、直感に反するようだが、この設計では自然な帰結である。','そして{margin}点差の勝敗が、この揺れている観点に乗っている。だから人の確認に回す。',
         'この2件が片づけば、判定は確定できる。逆に言えば、いま確定できないのはこの試合の条件によるものであって、エンジンが常に結論を出せないという意味ではない。',
@@ -760,11 +768,15 @@ function judge(st){
     return {d,dk,w,prod:dk*w,c:on?m.c:0,arena:m.arena,why:m.why,short:m.short,src:m.src};
   });
   const raw=rows.reduce((a,r)=>a+r.dk,0),wsum=rows.reduce((a,r)=>a+r.prod,0);
-  return {rows,raw,wsum,on,aff:total(st.ADV),neg:total(st.DIS),
+  /* 重みは側ごとの合計に分配できる（(a−n)×w = a×w − n×w）。wa−wn は wsum に一致する */
+  const wa=rows.reduce((a,r)=>a+st.ADV.cur[r.d.id]*r.w,0),
+        wn=rows.reduce((a,r)=>a+st.DIS.cur[r.d.id]*r.w,0);
+  return {rows,raw,wsum,on,wa,wn,moved:rows.filter(r=>r.w!==1).length,
+          aff:total(st.ADV),neg:total(st.DIS),
           side:wsum>0?'肯定側':wsum<0?'否定側':'引き分け',margin:Math.abs(wsum)};
 }
 /* wmap を渡すと各行に総括の重みを出す。総括の判定前は null で従来どおり3列。 */
-function band(dims,cur,peak,foe,hits,key,wmap){
+function band(dims,cur,peak,foe,hits,key,wmap,wwhy){
   return dims.map(d=>{
     const v=cur[d.id],p=peak?peak[d.id]:v;
     const cells=Array.from({length:10},(_,i)=>{const n=i+1;
@@ -774,20 +786,23 @@ function band(dims,cur,peak,foe,hits,key,wmap){
     const isHit=hits&&hits.arg===key&&hits.dims.includes(d.id);
     const holdT=(hits&&hits.hold===d.id)?'<span class="tagline tag-hold">保留</span>':'';
     const w=wmap?'<span class="dw'+(wmap[d.id]!==1?' up':'')+'">×'+wmap[d.id].toFixed(1)+'</span>':'';
-    return '<div class="dim'+(isHit?' hit':'')+'"><span class="dn">'+d.n+holdT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span>'+w+'</div>';
+    const wy=(wwhy&&wwhy[d.id])?'<span class="dwy">'+wwhy[d.id]+'</span>':'';
+    return '<div class="dim'+(isHit?' hit':'')+'"><span class="dn">'+d.n+holdT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span>'+w+wy+'</div>';
   }).join('');
 }
 function drawScores(st,hits){
   const ak=Object.keys(st).filter(k=>ARGS[k]);
   const v=judge(st), wm=(v&&v.on)?Object.fromEntries(v.rows.map(r=>[r.d.id,r.w])):null;
+  const wy=(v&&v.on)?Object.fromEntries(v.rows.filter(r=>r.w!==1)
+        .map(r=>[r.d.id,'総括で'+(r.c>0?'肯定':'否定')+'が制した'])):null;
   $('scores').classList.toggle('wgt',!!wm);
-  $('scoresh').textContent=wm?'各観点 10点満点　×印は総括の重み':'各観点 10点満点';
+  $('scoresh').textContent=wm?'各観点 10点満点　×印は総括の比較で動いた重み':'各観点 10点満点';
   if(!ak.length){$('scores').innerHTML='<p class="empty">再生を始めると、提示された立論がここに追加されます。</p>'}
   else $('scores').innerHTML=ak.map(k=>{
     const s2=st[k],m=ARGS[k],foe=m.side==='aff'?'#8C3A46':'#1D4E6B';
     let tag=s2.drop?'<span class="tagline tag-drop">落としあり</span>':'';
     if(s2.topic) tag+='<span class="tagline tag-topic">論題適合性 要確認</span>';
-    const rows=band(DIMS,s2.cur,s2.peak,foe,{arg:hits&&hits.arg,dims:(hits&&hits.dims)||[],hold:s2.hold},k,wm);
+    const rows=band(DIMS,s2.cur,s2.peak,foe,{arg:hits&&hits.arg,dims:(hits&&hits.dims)||[],hold:s2.hold},k,wm,wy);
     const wt=wm?'<em>重み反映後 '+fmt(wtotal(s2,wm))+'</em>':'';
     return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>'+total(s2)+'</b> / 50'+wt+'</span></div>'+rows+'</div>';
   }).join('')+bridge(st,v,wm);
@@ -837,8 +852,11 @@ function prevVal(idx,arg,dim){let v=null;for(let i=0;i<idx;i++){const e=LINES[i]
 const tpl=(s,V)=>String(s).replace(/\{(\w+)\}/g,(m,k)=>(k in V)?V[k]:m);
 function vnum(v){
   if(!v) return {};
-  const f=n=>Math.abs(n).toFixed(1);
+  /* 整数は整数のまま。素点差 1 を「1.0点差」と読ませない */
+  const f=n=>fmt(Math.abs(n));
+  const K=['〇','一','二','三','四','五'];
   return {aff:v.aff,neg:v.neg,side:v.side,margin:f(v.wsum),raw:f(v.raw),
+          affW:fmt(v.wa),negW:fmt(v.wn),movedN:K[v.moved]||String(v.moved),
           sideEn:v.wsum>0?'Affirmative':v.wsum<0?'Negative':'a tie',
           rawSide:v.raw>0?'肯定側':v.raw<0?'否定側':'引き分け'};
 }
@@ -925,6 +943,15 @@ function goto(i){
   const nb=$('notes'), lastNote=nb.lastElementChild;
   if(ev&&ev.kind==='verdict'&&lastNote) nb.scrollTop+=lastNote.getBoundingClientRect().top-nb.getBoundingClientRect().top;
   else nb.scrollTop=nb.scrollHeight;
+  /* 判定に着いたら、根拠である比較パネルを先頭に寄せる。結論だけが目に入る状態を避ける。
+     決着した観点は一瞬だけ光らせて、どこが動いたのかを示す。 */
+  if(ev&&ev.kind==='verdict'){
+    const R=document.querySelector('.right'), H=$('cmph');
+    if(H&&!H.classList.contains('hide')) R.scrollTop+=H.getBoundingClientRect().top-R.getBoundingClientRect().top;
+    document.querySelectorAll('.cmpr[data-w=up],.cmpr[data-w=down]').forEach(el=>{
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    });
+  }
   CHIPS.forEach((c,k)=>c.classList.toggle('on',k===ln.stage));
   $('clock').textContent=ln.time;
 }
