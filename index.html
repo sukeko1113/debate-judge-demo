@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Debate Judge AI｜試合分析・判定エンジン デモ v19</title>
+<title>Debate Judge AI｜試合分析・判定エンジン デモ</title>
+<!-- version: v20 -->
+<meta name="version" content="v20">
 <style>
 :root{
   --paper:#E7EBF1;--surface:#FFFFFF;--ink:#16202E;--ink-soft:#4A5768;--ink-faint:#7C889A;
@@ -37,7 +39,11 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .aud{display:flex;gap:10px;font-size:12px;color:var(--ink-soft);align-items:center;padding-left:8px;border-left:1px solid var(--rule-fine)}
 .aud label{display:flex;gap:4px;align-items:center;white-space:nowrap}
 
-.stages{background:var(--surface);border-bottom:1px solid var(--rule);padding:7px 18px;display:flex;gap:5px;overflow-x:auto}
+.stages{position:relative;background:var(--surface);border-bottom:1px solid var(--rule);padding:7px 18px;display:flex;flex-wrap:wrap;gap:5px;overflow-x:auto}
+/* 折り返しても3段以上になる幅では、帯の右端に「判定へ」を固定表示する */
+.stages .tojudge{display:none}
+.stages.narrow{padding-right:5.6em}
+.stages.narrow .tojudge{display:block;position:absolute;right:8px;top:7px;background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
 .chip{border:1px solid var(--rule-fine);background:#fff;color:var(--ink-soft);padding:3px 10px;border-radius:2px;font-size:11.5px;white-space:nowrap}
 .chip[data-side=aff].on{background:var(--aff);border-color:var(--aff);color:#fff}
 .chip[data-side=neg].on{background:var(--neg);border-color:var(--neg);color:#fff}
@@ -168,7 +174,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .empty{font-size:12.5px;color:var(--ink-faint);padding:2px 0 6px}
 .key{display:flex;flex-wrap:wrap;gap:2px 10px;padding:7px 17px;border-bottom:1px solid var(--rule);font-size:10.5px;color:var(--ink-faint);flex:0 0 auto}
 .key i{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:4px;vertical-align:-1px}
-/* v19 総括の比較。.scores と同じく flex:0 0 auto で「縮まない側」に置く */
+/* 総括の比較。.scores と同じく flex:0 0 auto で「縮まない側」に置く */
 .cmp{padding:6px 17px 8px;border-bottom:1px solid var(--rule);flex:0 0 auto}
 .cmpr{display:grid;grid-template-columns:6.6em 1fr auto;gap:2px 8px;align-items:baseline;
   padding:3px 4px;margin:0 -4px;border-top:1px solid var(--rule-fine)}
@@ -226,7 +232,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .note p+p{margin-top:6px}
 .note .hits{margin-top:7px;display:flex;flex-wrap:wrap;gap:5px}
 .note .hits span{font-size:11px;padding:1px 7px;border-radius:9px;background:#fff;border:1px solid var(--rule-fine);color:var(--ink-soft);font-variant-numeric:tabular-nums}
-/* v19 判定の内訳表。判定 note の先頭に置く */
+/* 判定の内訳表。判定 note の先頭に置く */
 .brk{width:100%;border-collapse:collapse;margin:3px 0 4px;font-size:11px;line-height:1.35;font-variant-numeric:tabular-nums}
 .brk th,.brk td{padding:1px 5px;border-bottom:1px solid var(--rule-fine);text-align:right;font-weight:400;color:var(--ink-soft)}
 .brk thead th{font-size:10.5px;color:var(--ink-faint);border-bottom:1px solid var(--rule)}
@@ -255,6 +261,57 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .cstep .cwhy{margin:3px 0 0;font-size:11.8px;line-height:1.65;color:var(--ink-soft)}
 .cstep .cwy{margin:3px 0 0;font-size:11px;line-height:1.5;color:var(--ink-faint)}
 .cstep .ccal{margin-top:4px;font-size:11.5px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.04em;text-align:right}
+/* 重みの条件表。どの重みがどの条件で付くかを、観点の一覧の直上に常時出す */
+.wtbl{width:100%;border-collapse:collapse;margin:0 0 7px;font-size:11px;line-height:1.4}
+.wtbl th,.wtbl td{padding:2px 6px;border-bottom:1px solid var(--rule-fine);text-align:left;font-weight:400;color:var(--ink-soft)}
+.wtbl thead th{font-size:10px;color:var(--ink-faint);font-weight:600;border-bottom:1px solid var(--rule)}
+.wtbl td.ww{text-align:right;white-space:nowrap;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.whyp{margin:0 0 7px;font-size:10.5px;line-height:1.5;color:var(--ink-faint)}
+/* 攻防の点数と重みの役割分離。同じ事実を重ねて数えていないことを示す */
+.wrole{margin:8px 0 0;padding:6px 9px;background:#F4F6F3;border:1px solid var(--rule-fine);border-left:3px solid var(--dim-sol,#6B4E8C);border-radius:3px;font-size:11.5px;line-height:1.65;color:var(--ink-soft)}
+.wrole p{margin:0 0 5px}.wrole p:last-of-type{margin-bottom:4px}.wrole b{color:var(--ink);font-weight:600}
+.wsrc{margin:0;padding:0;list-style:none;font-size:10.5px;line-height:1.5;color:var(--ink-faint)}
+.wsrc li{padding:1px 0}.wsrc li b{display:inline-block;min-width:9em;padding-right:.6em;color:var(--ink-soft);font-weight:600}
+.bubble .wrole{font-size:12.5px}
+/* 確認状態。保留と同じ枠に混ぜず、値が動かない未確認であることを示す */
+.note .vfy{border:1px solid var(--rule-fine);border-left:3px solid var(--ink-faint);border-radius:2px;padding:5px 8px;margin-top:7px;font-size:11.5px;line-height:1.6;color:var(--ink-soft)}
+/* 4区分の解説。判断・根拠・点数の変更・未確認事項を、見出し付きで並べる */
+.note.struct .sec{display:grid;grid-template-columns:5.2em 1fr;gap:0 9px;margin:6px 0 0;padding-top:5px;border-top:1px solid var(--rule-fine)}
+.note.struct .sec:first-of-type{border-top:0;padding-top:0}
+.note.struct .seclab{font-size:10px;letter-spacing:.08em;color:var(--warn);font-weight:600;padding-top:2px}
+.note.struct .secbody>p:first-child{margin-top:0}
+.note.struct .secbody>*:last-child{margin-bottom:0}
+.note.struct .jg{font-weight:600;color:var(--ink)}
+.note.struct .non{color:var(--ink-faint)}
+.note.struct .src{margin:0}
+.note.struct .hits{margin:0}
+/* 確定の前に人が確認する項目。保留と確認状態を同じ枠の別の見出しで並べる */
+.todo{margin:5px 0 6px;padding:6px 9px;background:#FBF7EA;border:1px solid #E6DCB8;border-radius:3px}
+.todo .th,.todo .th2{margin:0 0 4px;font-size:10.5px;letter-spacing:.02em;color:var(--warn);font-weight:600}
+.todo .th2{margin-top:7px;color:var(--ink-faint)}
+.tdl{margin:0;padding:0;list-style:none}
+.tdl li{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;padding:3px 0;border-top:1px solid #EDE4C8;font-size:11px;line-height:1.5}
+.tdl li:first-child{border-top:0}
+.tdl li b{color:var(--ink);font-weight:600}
+.tdl .tv{font-variant-numeric:tabular-nums;color:var(--ink-soft);font-weight:600}
+.tdl .tk{font-size:10px;color:var(--ink-faint)}
+.tdl .tk.dm{color:var(--warn);font-weight:600}
+a.jl{font-size:10.5px;color:var(--aff);text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer}
+.tolink{margin:4px 0 0;text-align:right}
+@keyframes boxflash{0%,100%{box-shadow:none}25%{box-shadow:0 0 0 3px #FFD98A}}
+.sens.flash,.cgrid.flash{animation:boxflash 1.1s ease-out 2}
+/* 採点の揺れの記録。断り書きを数字より先に読ませる */
+.runs{margin:0 0 5px;padding:5px 7px;background:#fff;border:1px dashed #D8C89A;border-radius:2px;font-size:10.5px;line-height:1.5;color:var(--ink-soft)}
+.runs .demo{display:block;font-size:10.5px;letter-spacing:.04em;color:#A8442C;font-weight:700;margin-bottom:2px}
+.runs span{display:block;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.runs em{display:block;font-style:normal;color:var(--ink-faint);margin-top:1px}
+.bubble .runs{font-size:11.5px}
+.key .kt{color:var(--ink-faint)}
+.key .kt b{margin-right:4px;font-weight:600}
+.tag-prov{color:#8A7A52}
+.vfn{margin:4px 0 2px;padding:4px 8px;background:#F2F3F5;border-radius:2px;font-size:10.5px;line-height:1.5;color:var(--ink-soft)}
+.bubble .vfn{font-size:11.5px}
+.note .vfy b{display:block;font-size:10.5px;letter-spacing:.04em;color:var(--ink);font-weight:600}
 .ctot{margin:8px 0 0;padding:6px 9px;background:#EFF2F6;border-radius:3px;font-size:12px;line-height:1.6;color:var(--ink-soft)}
 .ctot b{color:var(--ink);font-size:13px}
 /* 総括比較の吹き出し：広げて、観点ごとの比較を中に出す */
@@ -326,6 +383,23 @@ a.rb:hover{color:var(--aff)}
 .sens .sl span.flip i{color:var(--aff)}
 .sens .st{margin:5px 0 0;font-size:10.5px;line-height:1.5;color:var(--ink-soft)}
 .bubble .sens .sh{font-size:12px}.bubble .sens .st{font-size:11.5px}.bubble .sens .sl span{font-size:12px}
+/* 保留2件以上の組合せ感度。単独の感度（.sens）は、この表の行または列にあたる */
+.cgrid{margin:6px 0 2px;padding:6px 9px;background:#FBF7EA;border:1px solid #E6DCB8;border-radius:3px}
+.cgrid .ch{margin:0 0 5px;font-size:10.5px;color:var(--warn);font-weight:600;letter-spacing:.02em}
+.cgrid .cw{overflow-x:auto}
+.cgrid table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.35;font-variant-numeric:tabular-nums;background:#fff}
+.cgrid th,.cgrid td{padding:3px 5px;border:1px solid var(--rule-fine);text-align:center;font-weight:400;color:var(--ink-soft);white-space:nowrap}
+.cgrid thead th{font-size:10px;color:var(--ink-faint);font-weight:600}
+.cgrid thead th.cnr{text-align:left;white-space:normal;padding:3px 6px}
+.cgrid thead th.cnr i{color:var(--ink-soft);font-weight:600}
+.cgrid tbody th{text-align:left;color:var(--ink-soft);font-weight:600}
+.cgrid th i{display:block;font-style:normal;font-weight:400;font-size:9.5px;color:var(--ink-faint);line-height:1.3}
+.cgrid td.now{border-color:var(--warn);color:var(--ink);font-weight:700}
+.cgrid td.flip{color:var(--aff);font-weight:600}
+.cgrid td.tie{color:var(--warn);font-weight:700;background:#FBF7EA}
+.cgrid .cs{margin:6px 0 0;font-size:10.5px;line-height:1.5;color:var(--ink-soft)}
+.cgrid .cs b{display:block;margin-top:3px;color:var(--ink);font-weight:600}
+.bubble .cgrid .ch{font-size:12px}.bubble .cgrid .cs{font-size:11.5px}.bubble .cgrid table{font-size:12px}
 .brg .bs{color:var(--warn)}
 .foot{padding:15px 18px 32px;font-size:12px;color:var(--ink-faint);border-top:1px solid var(--rule);line-height:1.75}
 .foot p{margin:0 0 5px;max-width:58em}
@@ -486,13 +560,13 @@ const STAGES=[
 ];
 const ARGS={ADV:{name:'メリット：労働者の健康改善',side:'aff'},DIS:{name:'デメリット：中小企業の生産量低下',side:'neg'}};
 const DIMS=[{id:'inh',n:'現状との連続性',c:'#2F7A6E'},{id:'prob',n:'発生可能性',c:'#2C6FA8'},{id:'imp',n:'インパクト',c:'#C2762A'},{id:'sol',n:'解決性・不可避性',c:'#6B4E8C'},{id:'evd',n:'資料の裏づけ',c:'#5A7A3E'}];
-/* v19: 総括は独立した得点を持たず、観点ごとの「比較の勝敗」として重みに反映する。
+/* 総括は独立した得点を持たず、観点ごとの「比較の勝敗」として重みに反映する。
    c は +1 肯定が制した / -1 否定が制した / 0 決着なし。
    arena=false の観点は比較の土俵にせず、重みを常に 1.0 に固定する。 */
 const SUMCMP={
   inh: {arena:false,c: 0,
         short:'双方とも攻撃でも総括でも触れず、立論の差が残った',
-        why:'肯定側は立論で、規制が入った後もなお長時間労働が残っていると述べ、否定側は立論で、プラン導入後に新しく生じる被害だと述べた。ただし双方とも攻撃で相手に手を付けず、総括でも触れなかった。立論の差がそのまま残っている。土俵にしないので重みは1.0に固定する。',
+        why:'肯定側は立論で、労働者の9.7%が週60時間を超えて働いていると述べ、現に起きている問題として示した。否定側は立論で、プラン導入後に新しく生じる被害だと述べた。ただし双方とも攻撃で相手に手を付けず、総括でも触れなかった。立論の差がそのまま残っている。土俵にしないので重みは1.0に固定する。',
         src:'該当する比較の主張なし'},
   prob:{arena:true, c: 0,
         short:'双方とも総括で自分の攻撃を言い直しただけで噛み合わない',
@@ -518,8 +592,8 @@ const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
 const RUBRIC={
   scale:[
     {v:10,d:'数字と価値づけの両方が出典付きで支えられ、プランの対象範囲との対応まで述べられている'},
-    {v:9, d:'数字と価値づけの両方で支えられているが、プランの対象範囲との対応が述べられていない'},
-    {v:8, d:'出典付きの出発点があり、現に起きていること、または規模を示す数字がある。対象範囲との対応や規模の内訳など、隙間が一つ残る'},
+    {v:9, d:'被害の大きさを示す数字と価値づけの両方が、出典付きで支えられている。プランの対象範囲との対応は述べられていない'},
+    {v:8, d:'規模または出発点を示す数字はあるが、出典が示されていない、または被害の大きさ自体の数字がない。対象範囲との対応や規模の内訳など、隙間が残る'},
     {v:7, d:'出典のある出発点から経路が一本で追えるが、経路の後段や対象範囲との対応に裏づけがない'},
     {v:6, d:'出発点はあるが、出典が最初の一段だけ、理由が一つだけ、または現に起きていない予測にとどまる'},
     {v:5, d:'資料の対象や出所が確認できず、「適用範囲が未確認」などのフラグ付きで保持する'},
@@ -543,7 +617,9 @@ const RUBRIC={
 };
 const RULEN=Object.fromEntries([...RUBRIC.attack,...RUBRIC.defense].map(r=>[r.id,r.n+'：'+r.to]));
 const KINDJA={attack:'攻撃',defense:'防御',drop:'落とし'};
-document.getElementById('key').innerHTML=DIMS.map(d=>'<span><i style="background:'+d.c+'"></i>'+d.n+'</span>').join('');
+document.getElementById('key').innerHTML=DIMS.map(d=>'<span><i style="background:'+d.c+'"></i>'+d.n+'</span>').join('')+
+  '<span class="kt"><b class="tag-prov">暫定</b>条件しだいで人の確認に回る値</span>'+
+  '<span class="kt"><b class="tag-hold">保留</b>人が確認するまで確定しない値</span>';
 
 const L=(stage,seat,time,en,ja,ev,cite)=>({stage,seat,time,en,ja,ev,cite});
 const PT=(stage,seat,time,ja,ev)=>({stage,seat,time,en:'',ja,prep:SEATS[seat].side,ev});
@@ -587,7 +663,7 @@ L(0,'AC','0:32',`<span class="ev">The same survey reports that approximately ten
   say:'肯定側の立論です。インパクトが9と高く、現状との連続性も8。発生可能性と解決性は7で、プランが労働時間を直接減らす経路は一本ですが、対象が300人以上の企業に限られます。資料の裏づけは6にとどまります。因果は3段ありますが、出典が付いているのは第1段だけです。',
   /* 観点ごとに、なぜその点かを発言に基づいて書く。冒頭の「観点名は N。」は set から生成する */
   why:{
-    inh:'厚生労働省の調査で労働者の9.7%が週60時間を超えて働いているとし、規制が入った後もなお長時間労働が残っているという形で、今の制度の延長線上にある問題として述べている。プランが無くても被害が現に起きていることが出典付きで示されているので高い。9にしないのは、その9.7%のうちプランが届く300人以上の企業で働く人がどれだけかが述べられていないためである。',
+    inh:'厚生労働省の調査で労働者の9.7%が週60時間を超えて働いているとし、現に起きている長時間労働の報告として、今の制度の延長線上にある問題を述べている。プランが無くても被害が現に起きていることが出典付きで示されているので高い。9にしないのは、その9.7%のうちプランが届く300人以上の企業で働く人がどれだけかが述べられていないためである。',
     prob:'出典のある出発点から、5日目の労働が無くなれば総労働時間が減り、睡眠不足と疾患のリスクが下がるという経路が一本で述べられている。筋は素直で追いやすい。ただし調査は日本の労働者全体の数字で、プランの対象である300人以上の企業の労働者にどれだけ当てはまるかは示されていない。この隙間を残して7。',
     imp:'死亡という結果を扱っており、被害者が労働時間を選べない立場にあるという価値づけが重ねられている。数値と価値の両方で支えられているため、片方を崩されても全部は落ちない。10にしないのは、1万人という数字が日本全体の話で、プランが届くのは300人以上の企業で働く人だけだからである。救われる人数は数字が示す規模より小さい。否定側がこの食い違いを規模の問題として突けば、ここを削る余地がある。',
     sol:'プランは労働時間そのものを減らす直接の手段で、月額賃金を下げないという条件も付いているため、被害の原因に届いている。ただし対象は従業員300人以上の企業に限られ、それ以外で働く人には届かない。解決できる範囲が限定されているので7。',
@@ -603,7 +679,8 @@ PT(1,'AC','0:48',`資料の年代を聞かれると思う。2022年調査だか�
 L(2,'NS','0:52',`You cited a 2022 survey. Does it measure hours before or after the overtime cap took effect in 2019?`,`2022年の調査を引用されましたね。その数値は、2019年の残業上限規制の前と後、どちらを測ったものですか。`),
 L(2,'AC','0:57',`It covers 2022, so it is after the cap.`,`2022年のデータですので、規制の後になります。`,
  {kind:'note',k:'質疑を記録',say:'質疑は点数を動かしませんが、後のアタックの前提を作っています。',
-  body:['質疑そのものは点数を動かさない。ただしこの確認は、後のアタックが成立するかどうかの前提を作っている。','否定質疑はN4、答えるのは肯定立論者A1。役割分担は規定で定められており、指定外の選手が発言すると反則になる。エンジンは発言者の席と役割の対応も記録する。']}),
+  body:['質疑そのものは点数を動かさない。ただしこの確認は、後のアタックが成立するかどうかの前提を作っている。',
+        '質疑で、9.7% という数字が2019年の残業上限規制より後、2022年の調査によるものだと確認された。0:08 の数字とこの回答を合わせると、規制の後の時点でもなお週60時間超の労働が残っていることになる。0:32 の立論の時点では、規制との関係はまだ述べられていない。エンジンは立論の採点にこれを先取りせず、確認された時点で記録する。現状との連続性の評価はこれを含めて 8 のままで、点数は動かさない。','否定質疑はN4、答えるのは肯定立論者A1。役割分担は規定で定められており、指定外の選手が発言すると反則になる。エンジンは発言者の席と役割の対応も記録する。']}),
 
 /* ---------- ③ 否定立論 ---------- */
 L(3,'NC','1:04',`We negate. Our disadvantage is a fall in output among smaller firms. <span class="ev">A 2021 report by a private research institute found that firms could not maintain output when working days were reduced, because they could not hire replacement staff.</span>`,`私たちは否定します。デメリットは中小規模の企業における生産量の低下です。<b>民間調査機関の2021年の報告によれば、労働日数を削減した企業は、代替要員を採用できないために生産量を維持できませんでした。</b>`),
@@ -613,7 +690,7 @@ L(3,'NC','1:16',`Small and medium firms employ roughly seventy percent of Japane
   why:{
     inh:'プランを導入した後に新しく生じる被害として述べられており、今の時点では起きていない。現に起きている問題を扱う肯定側の8より低い。6を付けたのは、労働日数を減らした企業で実際に生産量が維持できなかったという報告があり、まったくの予測ではないためである。',
     prob:'2021年の報告が、実際に労働日数を減らした企業の事例なので、出発点は現実の観察に基づく。ただし生産量の低下から収益、賃金の低下、人員削減へ至る経路は述べられているだけで裏づけはない。さらにデメリットは中小規模の企業の話だが、プランの対象は従業員300人以上の企業であり、プランでこのデメリットが実際に起きるのかが詰められていない。規定（2.1.2）では、否定側はデメリットが実際に提示されたプランから生じることを証明しなければならない。7。',
-    imp:'雇用の7割という規模に加え、「肯定側が守ろうとする相手と同じ人が傷つく」という打ち消しの構造を持っている。9にしないのは、賃金の低下や人員削減が実際にどの程度の規模で起きるかが数字で示されていないためである。',
+    imp:'雇用の7割という規模に加え、「肯定側が守ろうとする相手と同じ人が傷つく」という打ち消しの構造を持っている。9にしないのは、隙間が二つ残るためである。7割は中小企業全体の数字で、出典が示されていない。賃金の低下や人員削減が実際にどの程度の規模で起きるかも、数字で示されていない。なお、プランが届く300人以上の企業との重なりが述べられていない点は、発生可能性の採点（7）で既に織り込んでいる。インパクトでは重ねて減点しない。',
     sol:'避けられない理由として述べられているのは「代替要員を採用できない」という一点だけで、それ以外の対応の余地には触れていない。被害が避けられないという主張が一つの理由に頼っているので6。',
     evd:'2021年の報告が調査した企業の規模が述べられておらず、プランの対象範囲と一致するかが確認できない。調査機関の名前も示されておらず、出典として追跡できない。エンジンは「適用範囲が未確認」というフラグを立てて保持する。'},
   body:['相手がこの資料の範囲を突けば、発生可能性と資料の裏づけが同時に削られる構造になっている。']}),
@@ -640,16 +717,21 @@ PT(6,'AA','2:00',`年代なら答えられる。業種の話まで来たら、�
 L(7,'NA','2:04',`On their process. <span class="ev">Their nine point seven percent is the residue the overtime cap could not remove, and it is concentrated in transport and construction — industries where most firms fall outside their plan.</span> Their plan applies to firms of three hundred or more. Their evidence does not show how many of those workers are in firms their plan reaches.`,`相手の発生過程についてです。<b>9.7％は残業上限規制が取り除けなかった残りの部分であり、しかも運輸や建設など、対象外の企業が多い業種に集中しています。</b>相手のプランは300人以上の企業に適用されます。相手自身の資料は、その労働者のうちどれだけがプランの届く企業にいるかを示していません。`,
  {kind:'attack',arg:'ADV',hits:{prob:3,evd:4},rule:{prob:'unshown',evd:'reach'},k:'攻撃 成立',
   say:'狙われたのは発生可能性と資料の裏づけです。発生可能性が7から3へ。インパクトには手が付いていないので、9のまま残します。',
-  body:['狙われたのは発生可能性と資料の裏づけの2つ。インパクトと現状との連続性には手が付いていない。',
-        '発生可能性が7から3へ。9.7％が小規模企業の多い業種に集中しているという指摘と、プランの対象企業にどれだけ当てはまるかが示されていないという指摘で、因果の第1段の前提が示されていない状態になった。崩れたのではなく、示されていないことが明らかになった。',
-        '資料の裏づけが6から4へ。資料そのものを否定したのではなく、射程がプランに届いているか示されていないという指摘なので、削り幅は限定的である。',
+  judg:'否定側の攻撃が2つの観点で成立した。インパクトと現状との連続性には手が付いていない。',
+  body:['9.7％が小規模企業の多い業種に集中しているという指摘と、プランの対象企業にどれだけ当てはまるかが示されていないという指摘で、因果の第1段の前提が示されていない状態になった。崩れたのではなく、示されていないことが明らかになった。',
+        '資料の裏づけは、資料そのものを否定したのではなく、射程がプランに届いているか示されていないという指摘なので、削り幅は限定的である。',
         '年代については 0:57 の質疑で規制後と確認されており、否定側はそこを攻撃していない。エンジンは質疑の回答を記録として保持し、それと食い違う攻撃があれば指摘する。',
         'なおこの攻撃は、プランが300人以上の企業に限られることを前提に、肯定側の資料の射程を問うている。プランは論題定義の範囲内で固定されているので、「実際のプランに資料が届いているか」を問うのは正当な攻め方である。'],
   src:'対応する発言：0:08 の下線部'}),
 L(7,'NA','2:18',`On their importance. <span class="ev">The ten thousand figure counts all deaths from cerebrovascular and cardiac disease among working-age adults.</span> It is not a count of deaths caused by working hours. Their own source does not separate the two.`,`相手の重要性についてです。<b>1万人という数字は、就労年齢の成人における脳血管疾患・心疾患による死亡の全体を数えたものです。</b>労働時間が原因で亡くなった人の数ではありません。相手の資料自体が両者を区別していません。`,
  {kind:'attack',arg:'ADV',hits:{imp:4},rule:{imp:'number'},k:'攻撃 成立',
+  /* 確認状態。保留とは別で、人が確認しても点数が動かない種類の未確認を記録する */
+  verify:{target:'資料原文',status:'未確認',
+    note:'エンジンは、否定側の読み方が資料原文に照らして正しいかどうかを判定していない。9→4 は、反論が提示され、その種類が段階表の「数値の側の崩壊」にあたることに基づく分類である。原文を確認して否定側の読み方が誤りだと分かっても、反論が提示された事実は変わらないので、この値は動かない。だから保留の印は付けない。'},
   say:'今度はインパクトです。9から4へ、この試合で最大の削りです。価値づけの部分は攻撃されていないので、4が残ります。',
-  body:['インパクトが9から4へ。この試合で最も大きな削りである。','資料の解釈を争う攻撃。エンジンは、元発言の数値表現とアタックの主張が同じ資料を指しているかを文字起こし原文で照合する。ここでは肯定側が「同じ調査」と述べていたため、参照先が一致すると判定した。','4が残るのは、「断れない立場の労働者が犠牲になる」という価値づけの部分が攻撃されていないため。数値の側だけが崩れている。','なお否定アタックで新しいデメリットを足すことは規定で禁止されている。ここでは足していない。エンジンは各アタックが新規のメリット・デメリットを含んでいないかを毎回照合する。'],
+  judg:'インパクトへの攻撃が成立した。この試合で最も大きな削りである。価値づけの側は攻撃されていない。',
+  body:['資料の解釈を争う攻撃。エンジンは、元発言の数値表現とアタックの主張が同じ資料を指しているかを文字起こし原文で照合する。ここでは肯定側が「同じ調査」と述べていたため、参照先が一致すると判定した。','4が残るのは、「断れない立場の労働者が犠牲になる」という価値づけの部分が攻撃されていないため。数値の側だけが崩れている。','なお否定アタックで新しいデメリットを足すことは規定で禁止されている。ここでは足していない。エンジンは各アタックが新規のメリット・デメリットを含んでいないかを毎回照合する。'],
+  open:['未確認には二種類ある。人が確認すると値が変わるもの（保留）と、確認しても値が変わらないもの（この資料の読み方）である。ここは後者にあたるため、保留ではなく確認状態として記録する。'],
   src:'対応する発言：0:32 の下線部'}),
 
 /* ---------- ⑥ 肯定質疑 ---------- */
@@ -662,9 +744,12 @@ L(8,'NA','2:34',`It describes the industries. It does not give a share.`,`業種
 L(9,'AA','2:42',`On their disadvantage. <span class="ev">I quote the 2021 report they cited — the Small Business Management Research Institute's <i>Survey Report on the Effect of Reduced Working Days on Output</i>, page two, survey outline: "Firms surveyed: enterprises with fewer than ten employees."</span> Our plan applies only to firms with three hundred or more, and firms of that size can redistribute staff internally. Their evidence describes a situation our plan never creates.`,`相手のデメリットについてです。<b>相手が引用した2021年の報告、中小企業経営調査研究所『労働日数削減が生産量に与える影響に関する調査報告書』、その2ページの調査概要を読み上げます。「調査対象：従業員10人未満の事業者」。</b>私たちのプランが適用されるのは300人以上の企業だけであり、その規模なら社内で人員を再配置できます。相手の資料が描いているのは、私たちのプランが決して作り出さない状況です。`,
  {kind:'attack',arg:'DIS',hits:{prob:2,evd:3},rule:{prob:'lose',evd:'reach'},k:'攻撃 成立',
   say:'狙いは発生可能性と資料の裏づけ。肯定側は相手の報告の調査概要を読み上げ、調査対象は10人未満、プランは300人以上と示しました。因果の出発点が失われました。7から2へ。',
-  body:['狙いは発生可能性と資料の裏づけ。否定側の立論時点で立てておいた「適用範囲が未確認」というフラグが、ここで回収された。',
-        'この攻撃は、報告書名・発行機関・参照箇所を挙げて調査概要を読み上げ、成立している。出所は吹き出しの「提示資料」に示した。アタックで反論のための資料を示すことは認められており、新しいデメリットの追加とは区別される。エンジンは読み上げられた出典を記録し、質疑（1:41）の「幅広く調査した」という回答と食い違うことを記録する。',
-        '否定側は 1:04 で機関名も報告書名も示していないため、肯定側が読み上げた報告が否定側の引用した報告と同一かを機械的には照合できない。ここでは肯定側の提示資料に基づいて 7→2 を付けるが、この値は同一性を前提にした暫定値である。否定側が次のディフェンスで引用内容を否定すれば、同一性は人の確認に回す。','発生可能性が7から2へ。質疑で規模を問われた否定側が答えなかったこと、その未回答部分がそのまま攻撃対象になっていることを、エンジンは一続きの流れとして記録する。','注目すべきは、肯定側がここで否定アタックへの再反論をしなかったことである。規定は肯定アタックでの再反論を禁じ、ディフェンスで行うよう定めている。手続きを守った運びとして記録する。','インパクト8は下げていない。雇用の7割という別の資料に支えられており、発生可能性とは独立しているためである。','この攻撃は論題適合性の問題ではない。規定（2.1.2）により、否定側のデメリットは実際に提示された肯定側プランから生じることを証明しなければならない。10人未満の企業だけを調べた資料では、300人以上の企業に義務づけるプランからデメリットが生じることを、そのままでは証明できない。だからこの攻撃は、否定側の発生可能性と資料の関連性を直接崩す攻撃として扱う。'],
+  /* 2:42 の時点では暫定。否定側が次のディフェンスで引用内容を否定すれば保留に上げる */
+  hold:{arg:'DIS',dim:'prob',t:'資料同一性',state:'provisional'},
+  judg:'肯定側の攻撃が成立した。否定側の立論時点で立てておいた「適用範囲が未確認」というフラグが、ここで回収された。',
+  body:['この攻撃は、報告書名・発行機関・参照箇所を挙げて調査概要を読み上げ、成立している。アタックで反論のための資料を示すことは認められており、新しいデメリットの追加とは区別される。エンジンは読み上げられた出典を記録し、質疑（1:41）の「幅広く調査した」という回答と食い違うことを記録する。',
+        '質疑で規模を問われた否定側が答えなかったこと、その未回答部分がそのまま攻撃対象になっていることを、エンジンは一続きの流れとして記録する。','注目すべきは、肯定側がここで否定アタックへの再反論をしなかったことである。規定は肯定アタックでの再反論を禁じ、ディフェンスで行うよう定めている。手続きを守った運びとして記録する。','インパクト8は下げていない。この8は 1:16 の「中小企業が労働者のおよそ7割を雇用する」という発言中の数字と価値づけに基づくもので、出典は示されていない。2:42 の攻撃は資料の調査範囲に向けたもので、この数字自体は攻撃されていないため、値はそのまま残る。','この攻撃は論題適合性の問題ではない。規定（2.1.2）により、否定側のデメリットは実際に提示された肯定側プランから生じることを証明しなければならない。10人未満の企業だけを調べた資料では、300人以上の企業に義務づけるプランからデメリットが生じることを、そのままでは証明できない。だからこの攻撃は、否定側の発生可能性と資料の関連性を直接崩す攻撃として扱う。'],
+  open:['否定側は 1:04 で機関名も報告書名も示していないため、肯定側が読み上げた報告が否定側の引用した報告と同一かを機械的には照合できない。ここでは肯定側の提示資料に基づいて 7→2 を付けるが、この値は同一性を前提にした暫定値である。','否定側が次のディフェンスで引用内容を否定すれば、同一性は人の確認に回す。それまでは点数表に「暫定」の印を付けて示す。'],
   src:'対応する発言：1:04 の下線部／提示資料：2:42'},
  '<b>『労働日数削減が生産量に与える影響に関する調査報告書』</b>　発行：中小企業経営調査研究所　2021年3月　参照箇所：p.2「調査概要」<br>引用文言：「調査対象：従業員10人未満の事業者。労働日数を削減した事業者を対象に、削減後の生産量の推移を調査した」<br>読み上げ：肯定側 A2。否定側は 1:04 で機関名・報告書名を示していないため、同一の報告かは未照合。'),
 
@@ -680,31 +765,38 @@ PI(11,'3:02',`3回目の準備時間、2分です。次は両チームのディ�
 PT(11,'AD','3:04',`業種の割合は数字がないと認めた。そこを突いて、300人以上の企業にどれだけ当てはまるかも問おう。`),
 PT(11,'AS','3:08',`インパクトの1万人、あっちの反論に返す時間ある？`),
 PT(11,'AD','3:11',`業種と対象企業の話で埋まりそう。インパクトの1万人への反論は捨てるしかないかもしれない。`),
-PT(11,'ND','3:14',`こっちは、再配置の資料がないって点を突く。ただ新しい資料は出せないから、言い直しになるな。`),
+PT(11,'ND','3:14',`こっちは、再配置の資料がないって点を突く。自分の資料の範囲は、立論で読んだ報告をもう一度引けば示せるが、読み返す時間がない。言い直しになるな。`),
 /* ---------- ⑨ 肯定ディフェンス ---------- */
 L(12,'AD','3:20',`Answering their attack. <span class="ev">They say the nine point seven percent is concentrated in transport and construction. In cross-examination they admitted their evidence gives no share for those industries.</span> The concentration they claim has no number behind it. Our figure stands as a nationwide figure.`,`相手の攻撃に応答します。<b>相手は9.7％が運輸や建設に集中していると言いました。しかし質疑で、資料にはその業種の割合が出ていないと認めています。</b>集中しているという主張に数字はありません。私たちの数字は、全国の数字として残ります。`,
  {kind:'defense',arg:'ADV',hits:{prob:5},rule:{prob:'part'},k:'防御 一部成立',
   say:'発生可能性が3から5へ。質疑で引き出した業種の割合の点は使えましたが、プランの対象企業にどれだけ当てはまるかという核心には答えていません。回復は2点にとどまります。',
-  body:['発生可能性が3から5へ。削られた4点のうち2点の回復にとどまる。',
-        '否定側の攻撃は「業種の偏り」と「プランの対象企業にどれだけ当てはまるか示されていない」の2点で構成されていた。肯定側は質疑（2:30）で引き出した「業種の割合に数字がない」という材料を使い、前者を崩した。',
+  judg:'防御が一部だけ成立した。削られた4点のうち、戻ったのは2点である。',
+  body:['否定側の攻撃は「業種の偏り」と「プランの対象企業にどれだけ当てはまるか示されていない」の2点で構成されていた。肯定側は質疑（2:30）で引き出した「業種の割合に数字がない」という材料を使い、前者を崩した。',
         'しかし後者、つまり9.7％のうちどれだけが300人以上の企業で働いているかという核心には触れていない。「全国の数字として残る」と述べただけでは、対象企業に当てはまるかの答えにならない。この発言は対象範囲への応答に集中したが、その核心にも答え切れなかった。',
-        '引き出した材料を使えば回復する。しかし核心に答えなければ全部は戻らない、という例である。段階表では「部分回復」にあたり、回復幅は+2で固定している。'],
+        '引き出した材料を使えば回復する。しかし核心に答えなければ全部は戻らない、という例である。'],
   ref:'準備時間 3:11 で「インパクトへの反論は捨てる」と相談していた。この相談は採点に用いない。発言の選び方を振り返るための学習用の参考として示すにとどめる。',
   src:'対応する発言：2:04 への応答'}),
 L(12,'AD','3:32',`That is our time.`,`以上です。`,
  {kind:'drop',arg:'ADV',hits:{imp:2},rule:{imp:'drop'},k:'落とし を検出',
   say:'落としです。インパクトへの攻撃に一度も応答しないまま、ディフェンスが終わりました。4から2へ。',
-  body:['インパクトへの攻撃（2:18）に一度も応答しないまま、肯定ディフェンスが終わった。','肯定ディフェンスは、否定アタックへの再反論を行える唯一のステージである。ここで応答しなければ、以後は総括で比較を述べられるだけで、反論そのものは新しい議論として無視される。','4から2へ。採点の記録に残るのは、応答がなかったという事実だけである。段階表では「落とし」にあたり、応答の機会が閉じた時点で残っていた値から2を引く。','この検出は勝敗そのものより学習上の価値が大きい。何を言えなかったかを、観点の単位で正確に知ることができる。'],
+  judg:'落としを検出した。インパクトへの攻撃に一度も応答しないまま、肯定ディフェンスが終わった。',
+  body:['肯定ディフェンスは、否定アタックへの再反論を行える唯一のステージである。ここで応答しなければ、以後は総括で比較を述べられるだけで、反論そのものは新しい議論として無視される。','採点の記録に残るのは、応答がなかったという事実だけである。','この検出は勝敗そのものより学習上の価値が大きい。何を言えなかったかを、観点の単位で正確に知ることができる。'],
   ref:'準備時間 3:08 で「反論に返す時間があるか」と相談し、3:11 で捨てる判断をしていた。この相談は採点に用いない。何を言えなかったかを振り返るための学習用の参考である。',
   src:'未応答：2:18 の攻撃'}),
 
 /* ---------- ⑩ 否定ディフェンス ---------- */
 L(13,'ND','3:38',`Answering their attack. Our report is not limited to the smallest firms. It describes Japanese industry broadly, and larger firms face the same shortage of skilled staff. Their claim that staff can be redistributed has no evidence behind it.`,`相手の攻撃に応答します。私たちの報告は最小規模の企業に限られたものではありません。日本の産業を広く記述したものであり、大企業も同じく熟練人材の不足に直面しています。再配置できるという相手の主張には、資料の裏づけがありません。`,
  {kind:'defense',arg:'DIS',hits:{prob:4},rule:{prob:'part'},k:'防御 限定的、資料同一性 要確認',
-  hold:{arg:'DIS',dim:'prob',t:'資料同一性',alts:[{v:5,l:'同一でない場合：前提の未提示 3 ＋ 部分回復 2'},{v:7,l:'攻撃が不成立の場合：立論の 7 に戻る'}]},
+  /* ここで暫定から保留・要確認に上がる。state は band() の印の出し分けに使う */
+  hold:{arg:'DIS',dim:'prob',t:'資料同一性',state:'hold',alts:[{v:5,l:'同一でない場合：前提の未提示 3 ＋ 部分回復 2'},{v:7,l:'攻撃が不成立の場合：立論の 7 に戻る'}]},
   say:'発生可能性が2から4へ。質疑で引き出した点は使えましたが、新しい資料がありません。回復は限定的です。',
-  body:['発生可能性が2から4へ。','否定側は「最小規模の企業に限られたものではない」と述べ、肯定側が 2:42 で読み上げた調査概要の内容を否定した。別の報告だとは言っていないが、同じ報告の調査範囲について両者の主張が食い違っている。否定側は 1:04 で機関名も報告書名も示しておらず、肯定側の提示資料（報告書名・機関・p.2）と照合できないため、エンジンはここで決めず「資料同一性・要確認」として保留にする。',
-        '保留の影響は発生可能性の値に限る。2:42 の「出発点の喪失（7→2）」は同一性を前提にした分類で、同一でなければ攻撃は「前提の未提示」（質疑で規模を答えなかった事実に基づく。到達点3）に分類し直し、この防御の部分回復+2を足して5になる。攻撃が不成立なら立論の7に戻る。資料の裏づけの 5→3 は「射程の指摘」で、否定側が規模を示していないことに基づくため、同一性の判断に左右されない。判定にどう効くかは判定の場面で示す。','質疑（2:54）で引き出した「再配置に資料がない」という点を、ここできちんと使えている。材料を回収した点は肯定側との差である。','ただし自分の資料の範囲については、新しい資料を出さずに言い直しているだけである。ディフェンスで新しいデメリットを足すことは禁止されているが、既存の議論を資料で補強することは可能だった。','エンジンは「資料を伴う応答」と「伴わない応答」を区別する。削られた5点のうち2点しか戻らないのはそのためである。段階表では「部分回復」にあたり、回復幅は+2で固定している。'],
+  judg:'防御が一部だけ成立した。＋2 の根拠は一つで、自分の資料の範囲は未解決のまま残る。',
+  body:['反論として成立したもの。質疑（2:54）で引き出した「再配置できるという主張に資料がない」という点を、この発言で実際に使った。部分回復 +2 の根拠はこれであり、+2 はこれだけによる。材料を回収した点は肯定側との差である。',
+        'エンジンは「資料を伴う応答」と「伴わない応答」を区別する。削られた5点のうち2点しか戻らないのはそのためである。'],
+  open:['否定側は「最小規模の企業に限られたものではない」と述べ、肯定側が 2:42 で読み上げた調査概要の内容を否定した。別の報告だとは言っていないが、同じ報告の調査範囲について両者の主張が食い違っている。否定側は 1:04 で機関名も報告書名も示しておらず、肯定側の提示資料（報告書名・機関・p.2）と照合できない。エンジンはここで決めず、2:42 の「暫定」を「保留・要確認」に上げる。',
+        '否定側の資料が300人以上の企業を対象にしているかどうかは、証明されていない。新しい資料も、立論で読んだ資料の再提示もなかったためである。ディフェンスで新しいデメリットを足すことは禁止されているが、既存の議論を資料で補強することはできた。',
+        '保留の影響は発生可能性の値に限る。2:42 の「出発点の喪失（7→2）」は同一性を前提にした分類で、同一でなければ攻撃は「前提の未提示」（質疑で規模を答えなかった事実に基づく。到達点3）に分類し直し、この防御の部分回復+2を足して5になる。攻撃が不成立なら立論の7に戻る。資料の裏づけの 5→3 は「射程の指摘」で、否定側が規模を示していないことに基づくため、同一性の判断に左右されない。判定にどう効くかは判定の場面で示す。'],
+  ref:'準備時間 3:14 で、立論で読んだ報告をもう一度引けば自分の資料の範囲を示せると認識していたが、読み返す時間がないとして見送っている。この相談は採点に用いない。',
   src:'対応する発言：2:42 への応答／保留：資料同一性（2:42 の提示資料 対 3:38 の否認）'}),
 
 /* ---------- 準備（2分・総括構築） ---------- */
@@ -718,7 +810,7 @@ L(15,'AS','4:06',`Weigh irreversibility: a lost quarter of production can be rec
  {kind:'note',k:'比較の主張を記録',
   say:'肯定側は回復可能性という軸を名指しし、両者をその軸に載せました。ただし比較の決着は、否定側の総括を聞いてから判定します。',
   body:['肯定側は「回復可能性」という軸を名指しし、自分のメリットと相手のデメリットの両方をその軸に載せた。軸を明示したうえで両者を比べる作業は、総括で最も評価される。',
-        'v19では総括に独立した得点を与えない。総括が動かすのは観点ごとの重みだけである。',
+        'このエンジンは総括に独立した得点を与えない。総括が動かすのは観点ごとの重みだけである。',
         'この時点では主張として記録するにとどめる。比較の勝敗は、否定側の総括を聞いたうえで観点ごとに判定する。片側の主張だけで決着をつければ、後に述べる側が常に不利になるためである。'],
   src:'対応する発言：4:06'}),
 
@@ -749,23 +841,23 @@ L(17,'J','—',`<b>Weighing the summaries.</b> Each issue is checked for whether
 
 /* ---------- 判定 ---------- */
 L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Raw score {aff} / {neg} ({raw}-point gap) → after weighting {affW} / {negW}. Two items require human confirmation.`,`<b>暫定判定：{side}、{margin}点差。</b>素点 肯定 {aff} 対 否定 {neg}（{raw}点差）→ 重み反映後 肯定 {affW} 対 否定 {negW}。確定の前に、人による確認が必要な項目が2件あります。`,
- {kind:'verdict',k:'判定と、確定までの手続き',hold:{arg:'DIS',dim:'imp',t:'採点の揺れ'},
+ {kind:'verdict',k:'判定と、確定までの手続き',
+  /* runs / threshold はデモ用の仮値。実測ではない（9章の持ち越し）。
+     範囲（最大−最小）が threshold 以上の観点を保留にする、という設計を示すための値。 */
+  hold:{arg:'DIS',dim:'imp',t:'採点の揺れ',state:'hold',demo:true,runs:[8,9,7,8,8],threshold:2},
   say:'暫定判定は{side}、{margin}点差です。素点は{raw}点差ですが、総括で{movedN}つの観点に決着がつき、重みが動きました。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は資料の同一性です。肯定側が読み上げた報告と否定側が引用した報告が同じものか、否定側が機関名を示していないため照合できていません。ただし同一でなくても、判定の向きは変わりません。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
-  body:['〔この試合について〕',
-        '素点は肯定{aff}対否定{neg}で{raw}点差である。ただし総括で{movedN}つの観点に決着がついたため、その重みを1.5倍に反映すると、肯定{affW}対否定{negW}となり、{margin}点差に開く。',
-        'インパクトは否定側が制した。否定側は攻撃で、1万人という数字は脳血管疾患・心疾患による死亡の全体であって労働時間が原因の死者数ではないと指摘した。肯定側は防御でこれに応答せず、総括でも「防ぐことのできたはずの死」と価値を言い直すにとどまり、数え方には触れなかった。防御で応答しなかったため、総括では反論そのものができない。同じ土俵に否定側の否認だけが残った。',
-        '解決性・不可避性は肯定側が制した。肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないとして、回復可能性という軸を示し両者をその軸に載せた。否定側は総括で自分のデメリットが崩れずに残っていると述べるにとどまり、その軸には乗らなかった。',
-        '残る三つは重みが動いていない。発生可能性は双方が自分の攻撃を言い直しただけで噛み合わず、決着がつかなかった。現状との連続性と資料の裏づけは、どちらの総括でも比較の軸にならなかった。',
-        '勝敗を分けたのはインパクトである。肯定側が防御で応答して4を守り、総括でも同じ土俵に立っていれば、この観点の重みは動かず、結論は逆転していた。',
+  judg:'重み反映後の差で{side}、{margin}点差。総括で{movedN}つの観点に決着がつき、その重みが1.5倍になったことで、素点の{raw}点差が開いた。ただし確定の前に、人が確認すべき項目が残っている。',
+  body:['勝敗を分けたのはインパクトである。肯定側が防御で応答して4を守り、総括でも同じ土俵に立っていれば、この観点の重みは動かず、結論は逆転していた。',
         'なお肯定側のプラン（従業員300人以上）は事前の論題定義の範囲内という前提で進めたので、論題適合性による保留はない。対象が限られることによる規模の評価は、立論の採点に織り込み済みである。',
-        '重みは1.5・1.0・0.5の三段階で、いずれも正である。自分が優位な観点で比較を制せば1.5、決着がつかなければ1.0、劣勢な観点で相手に制し返されれば0.5に下がる。この試合では0.5は生じていない。重みが常に正であるため、立論で負けている観点が総括によって勝ちに転じることはない。',
-        'なお、確定の前に人による確認が必要な項目が2件ある。',        '1件目は資料の同一性である。肯定側は 2:42 で報告書名・発行機関・参照箇所を挙げて「調査対象は従業員10人未満」と読み上げ、否定側は 3:38 で「最小規模の企業に限られたものではない」と否定した。否定側が 1:04 で機関名も報告書名も示していないため、両者が同じ報告を指しているかをエンジンは照合できない。否定側の発生可能性の 7→2 はこの同一性を前提にした暫定値であり、上の保留の感度に示したとおり、同一でない場合は5、攻撃が不成立の場合は7に置き換わる。いずれの場合も判定の向きは変わらないが、値は人が確認するまで暫定である。',
-        '2件目は否定側のインパクト8である。まず紛らわしい点を分けておく。ここで揺れているのは試合中の推移ではない。肯定側がこの観点を一度も攻撃していないので、8点は立論で付いてから最後まで一度も動いていない。攻撃されなければ点はそのまま残るという原則のとおりである。','揺れているのは、最初にいくつを付けるかという採点そのものである。同じ試合を複数回採点したところ、この観点だけ値が散らばり、閾値を超えた。エンジンが安定した一つの値を出せていないという意味であり、値が間違っているという意味ではない。','散らばる理由ははっきりしている。この8点は「雇用の7割」という数字と、「傷つくのは肯定側が守ろうとする相手と同じ低所得労働者だ」という価値づけの二つで支えられている。後者に数字はない。そして肯定側は、この価値づけを試合を通じて一度も攻撃していない。','攻撃されていれば、その反論の内容が採点を固定する手がかりになる。攻撃されないまま残った価値の主張には、判断を固定する材料がどこにもない。だから採点のたびに値が動く。','試合中に点が動かないことと、最初の値が一つに定まることは別である。前者は相手が攻撃しなかったという記録の問題で、後者はエンジンが何点と読むかという採点の問題である。この観点は前者としては安定していて、後者としては不安定だった。攻撃されなかった論点ほど最初の値が定まりにくいというのは直感に反するようだが、この設計では自然な帰結である。','そして{margin}点差の勝敗が、この揺れている観点に乗っている。だから人の確認に回す。',
-        'この2件が片づけば、判定は確定できる。逆に言えば、いま確定できないのはこの試合の条件によるものであって、エンジンが常に結論を出せないという意味ではない。',
         '〔このエンジンの立場〕',
         'エンジンは判定を出す。人間ジャッジとの勝敗一致率を指標として設計しており、結論を避ける仕組みではない。',
         'ただし判定だけを出すのではない。どの観点が、いつ、どの発言によって動いたかを、すべて元の発言まで遡れる形で残す。だから人は結論を鵜呑みにせず、過程を検証したうえで確定できる。',
-        '確定するのは人である。エンジンの役割は、確定に必要な材料を漏れなく揃え、判断が定まらない論点を暫定値のまま計算に含めたうえで、保留の印を付けて切り分けて示すことにある。今回の「資料同一性・要確認」「採点の揺れによる保留」がそれにあたり、この判定は保留項目が人の手で確認されるまで暫定である。分からないものを分からないまま出すのが設計であり、これは判定を放棄しているのとは違う。']})
+        '確定するのは人である。エンジンの役割は、確定に必要な材料を漏れなく揃え、判断が定まらない論点を暫定値のまま計算に含めたうえで、保留の印を付けて切り分けて示すことにある。この判定は保留項目が人の手で確認されるまで暫定である。分からないものを分からないまま出すのが設計であり、これは判定を放棄しているのとは違う。'],
+  open:['資料の同一性について。肯定側は 2:42 で報告書名・発行機関・参照箇所を挙げて「調査対象は従業員10人未満」と読み上げ、否定側は 3:38 で「最小規模の企業に限られたものではない」と否定した。否定側が 1:04 で機関名も報告書名も示していないため、両者が同じ報告を指しているかをエンジンは照合できない。値は人が確認するまで暫定である。',
+        '採点の揺れについて。まず紛らわしい点を分けておく。揺れているのは試合中の推移ではない。肯定側がこの観点を一度も攻撃していないので、8点は立論で付いてから最後まで一度も動いていない。揺れているのは、最初にいくつを付けるかという採点そのものである。',
+        'この8点は「雇用の7割」という数字と、「傷つくのは肯定側が守ろうとする相手と同じ低所得労働者だ」という価値づけの二つで支えられている。後者に数字はなく、肯定側はこの価値づけを試合を通じて一度も攻撃していない。攻撃されていれば、その反論の内容が採点を固定する手がかりになる。攻撃されないまま残った価値の主張には、判断を固定する材料がどこにもない。だから採点のたびに値が動く。',
+        '試合中に点が動かないことと、最初の値が一つに定まることは別である。前者は相手が攻撃しなかったという記録の問題で、後者はエンジンが何点と読むかという採点の問題である。この観点は前者としては安定していて、後者としては不安定だった。そして{margin}点差の勝敗が、この揺れている観点に乗っている。だから人の確認に回す。',
+        'これらが片づけば、判定は確定できる。いま確定できないのはこの試合の条件によるものであって、エンジンが常に結論を出せないという意味ではない。']})
 
 ];
 
@@ -924,6 +1016,20 @@ const chips=$('chips');
 STAGES.forEach((s,i)=>{const c=document.createElement('button');c.className='chip';c.dataset.side=s.s;c.textContent=s.n;c.type='button';
   c.onclick=()=>{pause();goto(LINES.findIndex(l=>l.stage===i))};chips.appendChild(c)});
 const CHIPS=[...chips.children];
+/* 帯の右端の「判定へ」。折り返しても収まらない幅でだけ出す */
+const toJudge=document.createElement('button');
+toJudge.type='button'; toJudge.className='chip tojudge'; toJudge.textContent='判定へ ⏭';
+toJudge.onclick=()=>{pause(); goto(LINES.findIndex(l=>l.stage===STAGES.length-1))};
+chips.appendChild(toJudge);
+/* チップが3段以上に折り返す幅かどうかを測る。段数は offsetTop の種類数で数える */
+function fitChips(){ chips.classList.toggle('narrow', new Set(CHIPS.map(c=>c.offsetTop)).size>2); }
+addEventListener('resize',fitChips); fitChips();
+/* 現在のステージが帯の外に出ていたら、見える位置まで寄せる */
+function showChip(c){
+  const a=c.getBoundingClientRect(), b=chips.getBoundingClientRect();
+  if(a.left<b.left||a.right>b.right||a.top<b.top||a.bottom>b.bottom)
+    c.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
+}
 
 function state(upto){
   const st={};
@@ -944,7 +1050,7 @@ const total=s=>DIMS.reduce((a,d)=>a+s.cur[d.id],0);
 const wtotal=(s,wm)=>DIMS.reduce((a,d)=>a+s.cur[d.id]*(wm?wm[d.id]:1),0);
 const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
 const sfmt=n=>(n>0?'+':n<0?'−':'±')+fmt(Math.abs(n));
-/* v19: 重みは 1.5 / 1.0 / 0.5 のいずれかで常に正。したがって d_k×w_k は d_k の符号を保つ。
+/* 重みは 1.5 / 1.0 / 0.5 のいずれかで常に正。したがって d_k×w_k は d_k の符号を保つ。
    総括は重みだけを動かし、個々の観点の勝敗は反転させない。 */
 const cmpW=(dk,c,arena)=>(!arena||c===0||dk===0)?1:(Math.sign(c)===Math.sign(dk)?1.5:.5);
 /* 総括の比較が未確定（st.CMP が立つ前）は全観点 w=1.0。どのステージで呼んでも安全で、
@@ -972,6 +1078,29 @@ function holdSens(st,arg,dim,on,h){
   let flipUp=null;for(let v=cur+1;v<=10;v++){if(Math.sign(at(v))!==now){flipUp=v;break}}
   return {arg,dim,cur,h,mode:'scan',list,flip,flipUp};
 }
+/* 組合せ感度表の軸。その保留がとりうる値を保留のデータから作る。
+   alts があれば暫定値＋代替値、無ければ暫定値・単独の逆転境界・その1つ下。手打ちの値は置かない。 */
+function holdAxis(st,arg,dim,on,h){
+  const cur=st[arg].cur[dim];
+  if(h&&h.alts) return [{v:cur,l:'暫定値'}].concat(h.alts.map(a=>({v:a.v,l:'代替値'})));
+  const s=holdSens(st,arg,dim,on,h),out=[{v:cur,l:'暫定値'}];
+  if(s.flip!==null){ out.push({v:s.flip,l:'逆転境界'}); if(s.flip>1) out.push({v:s.flip-1,l:'境界の1つ下'}); }
+  return out;
+}
+const setDim=(st,arg,dim,v)=>({...st,[arg]:{...st[arg],cur:{...st[arg].cur,[dim]:v}}});
+/* 保留を2件ずつ組み合わせ、両方を同時に動かしたときの最終差を出す。
+   セルは単独感度と同じ calc() で計算し直すので、値を動かせば重みも掛け直される。
+   保留が3件以上になっても動くよう総当たりで組を作る（現行は2件なので表は1枚）。 */
+function comboGrid(st,on,sens){
+  const out=[];
+  for(let i=0;i<sens.length;i++)for(let j=i+1;j<sens.length;j++){
+    const R=sens[i],C=sens[j];
+    const rows=holdAxis(st,R.arg,R.dim,on,R.h),cols=holdAxis(st,C.arg,C.dim,on,C.h);
+    out.push({R,C,rows,cols,cells:rows.map(r=>cols.map(c=>
+      calc(setDim(setDim(st,R.arg,R.dim,r.v),C.arg,C.dim,c.v),on).wsum))});
+  }
+  return out;
+}
 function judge(st){
   if(!st.ADV||!st.DIS) return null;
   const on=!!st.CMP;
@@ -983,7 +1112,21 @@ function judge(st){
   return {rows,raw,wsum,on,wa,wn,moved:rows.filter(r=>r.w!==1).length,
           aff:total(st.ADV),neg:total(st.DIS),
           sens:sens.length?sens:null,
+          combo:sens.length>1?comboGrid(st,on,sens):null,
           side:wsum>0?'肯定側':wsum<0?'否定側':'引き分け',margin:Math.abs(wsum)};
+}
+/* 単独の感度は、他方の保留を暫定値に固定した断面である。その固定条件をデータから文にする。
+   側名も値も持たず、保留が増えれば条件も自動で増える。 */
+const fixCond=(sens,s)=>sens.filter(x=>x!==s)
+  .map(x=>(ARGS[x.arg].side==='aff'?'肯定':'否定')+'側の'+DIMN[x.dim]+'を暫定値'+x.cur+'に固定した場合、').join('');
+/* 採点の揺れの記録。断り書きを数字より先に置き、実測値と読まれないようにする。
+   範囲（最大−最小）が閾値以上の観点を保留にする、という設計をそのまま出す。 */
+function runsBox(h){
+  if(!h||!h.runs||!h.runs.length) return '';
+  const r=h.runs, rg=Math.max.apply(null,r)-Math.min.apply(null,r);
+  return '<div class="runs">'+(h.demo?'<b class="demo">デモ用の値（未実測）</b>':'')+
+    '<span>採点 '+r.length+' 回：値 '+r.join('・')+'、範囲 '+rg+'、閾値 '+h.threshold+'</span>'+
+    '<em>範囲が閾値以上のため保留にした。他の観点は、同じ採点で範囲が閾値未満だった。</em></div>';
 }
 /* 保留の値を動かしたときの最終差。現在の値から、向きが変わる値の一つ先までを並べる */
 function drawSens(v){
@@ -991,30 +1134,59 @@ function drawSens(v){
   const sideOf=w=>w>0?'肯定':w<0?'否定':'引き分け';
   return v.sens.map(s=>{
     const side=ARGS[s.arg].side==='aff'?'肯定':'否定', other=side==='肯定'?'否定':'肯定', dn=DIMN[s.dim];
+    const rn=runsBox(s.h);
     const nowW=s.list.find(y=>y.v===s.cur).w;
     if(s.mode==='alts'){
       const cells=s.list.map((x,i)=>'<span'+(i===0?' class="now"':(Math.sign(x.w)!==Math.sign(nowW)?' class="flip"':''))+'>'+
         x.v+'<i>'+sideOf(x.w)+' '+fmt(Math.abs(x.w))+'</i><em>'+x.l+'</em></span>').join('');
-      const line=s.flips.length
+      const line=fixCond(v.sens,s)+(s.flips.length
         ?s.flips.map(x=>x.l+'は'+other+'側に逆転する').join('。')+'。'
-        :'いずれの場合も判定の向きは変わらない（最終差は '+s.list.map(x=>sideOf(x.w)+' '+fmt(Math.abs(x.w))).join('／')+'）。値は人が確認するまで暫定である。';
-      return '<div class="sens"><p class="sh">保留の感度　'+side+'側「'+dn+'」'+s.cur+'（'+s.h.t+'・要確認）を代替値に置き換えた場合の最終差</p>'+
+        :'いずれの代替値でも判定の向きは変わらない（最終差は '+s.list.map(x=>sideOf(x.w)+' '+fmt(Math.abs(x.w))).join('／')+'）。値は人が確認するまで暫定である。');
+      return '<div class="sens"><p class="sh">保留の感度　'+side+'側「'+dn+'」'+s.cur+'（'+s.h.t+'・要確認）を代替値に置き換えた場合の最終差</p>'+rn+
         '<div class="sl alts">'+cells+'</div><p class="st">'+line+'</p></div>';
     }
     const lo=s.flip===null?1:Math.max(1,s.flip-1);
     const cells=s.list.filter(x=>x.v<=s.cur&&x.v>=lo).map(x=>
       '<span'+(x.v===s.cur?' class="now"':(Math.sign(x.w)!==Math.sign(nowW)?' class="flip"':''))+'>'+
       x.v+'<i>'+sideOf(x.w)+' '+fmt(Math.abs(x.w))+'</i></span>').join('');
-    const line=s.flip===null
+    const line=fixCond(v.sens,s)+(s.flip===null
       ?'1まで下げても判定の向きは変わらない。'
-      :'この値が'+s.flip+'以下なら判定は'+other+'側に逆転する。'+s.cur+'から'+(s.cur-s.flip)+'点下がると結論が変わる。';
+      :'この値が'+s.flip+'以下なら判定は'+other+'側に逆転する。'+s.cur+'から'+(s.cur-s.flip)+'点下がると結論が変わる。');
     const up=s.flipUp!==null?'逆に'+s.flipUp+'以上なら'+other+'側に転じる。':'';
-    return '<div class="sens"><p class="sh">保留の感度　'+side+'側「'+dn+'」の暫定値 '+s.cur+'（'+s.h.t+'）を動かした場合の最終差</p>'+
+    return '<div class="sens"><p class="sh">保留の感度　'+side+'側「'+dn+'」の暫定値 '+s.cur+'（'+s.h.t+'）を動かした場合の最終差</p>'+rn+
       '<div class="sl">'+cells+'</div><p class="st">'+line+up+'</p></div>';
+  }).join('');
+}
+/* 組合せ感度表。行と列は保留の値、セルは最終差。数値はすべて計算結果で、手打ちはない。
+   同点はエンジンが判定を出さない場所なので、点差ではなく「同点」と出す。 */
+function drawCombo(v){
+  if(!v||!v.combo||!v.combo.length) return '';
+  const nm=s=>(ARGS[s.arg].side==='aff'?'肯定':'否定')+'側「'+DIMN[s.dim]+'」';
+  /* 左上のセルは狭いので、側と観点を中黒でつないだ短い形にし、行と列を別の行に置く */
+  const snm=s=>(ARGS[s.arg].side==='aff'?'肯定':'否定')+'・'+DIMN[s.dim];
+  const cell=w=>w===0?'同点':(w>0?'肯定':'否定')+' '+fmt(Math.abs(w))+'点差';
+  return v.combo.map(g=>{
+    /* 左上のセルが両方とも暫定値、つまり現在の判定。ここからの符号の変化を見る */
+    const sgn=Math.sign(g.cells[0][0]);
+    const head='<tr><th class="cnr"><i>行　'+snm(g.R)+'</i><i>列　'+snm(g.C)+'</i></th>'+
+      g.cols.map(c=>'<th>'+c.v+'<i>'+c.l+'</i></th>').join('')+'</tr>';
+    const body=g.rows.map((r,ri)=>'<tr><th>'+r.v+'<i>'+r.l+'</i></th>'+
+      g.cells[ri].map((w,ci)=>{
+        const k=w===0?'tie':(ri===0&&ci===0)?'now':(Math.sign(w)!==sgn?'flip':'');
+        return '<td'+(k?' class="'+k+'"':'')+'>'+cell(w)+'</td>';
+      }).join('')+'</tr>').join('');
+    return '<div class="cgrid"><p class="ch">保留の組合せ感度　'+nm(g.R)+'と'+nm(g.C)+
+      'を同時に動かした場合の最終差</p><div class="cw"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+      '<p class="cs">上の単独の感度は、この表の一断面である。'+nm(g.R)+'の感度は'+nm(g.C)+'＝'+g.cols[0].v+
+      'の列を縦に読んだもの、'+nm(g.C)+'の感度は'+nm(g.R)+'＝'+g.rows[0].v+
+      'の行を横に読んだもので、別々の計算をしているのではない。2件を同時に動かすと、単独では現れない同点や、逆転しない組合せが出る。'+
+      '<b>同点の場合、エンジンは判定を出さない。人が確認して確定する。</b></p></div>';
   }).join('');
 }
 /* 解説中の時刻（例 2:18）を、その発言へ移動するリンクにする。LINES にない時刻は文字のまま残す */
 const TIDX=new Map(); LINES.forEach((l,i)=>{ if(l.time!=='—'&&!TIDX.has(l.time)) TIDX.set(l.time,i); });
+/* 確認状態の一覧。保留とは別で、人が確認しても値が動かない未確認をまとめる */
+const VERIFY=LINES.map(l=>(l.ev&&l.ev.verify)?Object.assign({t:l.time},l.ev.verify):null).filter(Boolean);
 const tlink=s=>String(s).replace(/(^|[^\d.])(\d:\d\d)(?![\d.])/g,(m,pre,t)=>TIDX.has(t)?pre+'<a class="tl" href="#" data-t="'+t+'">'+t+'</a>':m);
 const KEYM=[{t:'2:04',l:'否定アタック 発生過程'},{t:'2:18',l:'否定アタック インパクト'},{t:'2:42',l:'肯定アタック'},
             {t:'3:20',l:'肯定ディフェンス'},{t:'3:32',l:'落とし'},{t:'3:38',l:'否定ディフェンス'},{s:17,l:'総括比較'},{s:18,l:'判定'}];
@@ -1025,7 +1197,14 @@ $('qnav').innerHTML='<span>主要場面</span>'+KEYM.map(k=>{
 $('qnav').addEventListener('click',e=>{const b=e.target.closest('.qb'); if(!b) return; b.blur(); pause(); goto(+b.dataset.i);});
 document.addEventListener('click',e=>{
   const a=e.target.closest('a.tl'); if(a){ e.preventDefault(); if(a.dataset.t){ pause(); goto(TIDX.get(a.dataset.t)); } return; }
-  const r=e.target.closest('a.rb'); if(r){ e.preventDefault(); showRubric(r.dataset.v); }
+  const r=e.target.closest('a.rb'); if(r){ e.preventDefault(); showRubric(r.dataset.v); return; }
+  /* 要確認の一覧から、単独の感度と組合せ表へ移動する。同じ枠の中を探すので
+     右列の解説からも吹き出しからも、それぞれの表に飛ぶ */
+  const j=e.target.closest('a.jl'); if(j){ e.preventDefault();
+    const box=j.closest('.note')||j.closest('#bcmp')||document;
+    const t=j.dataset.j==='sens'?box.querySelectorAll('.sens')[+j.dataset.k]:box.querySelector('.cgrid');
+    if(t){ t.scrollIntoView({block:'nearest',behavior:'smooth'});
+           t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); } }
 });
 /* 採点基準の段階表。右列の折りたたみに出し、立論の「尺度 N」から該当行へ飛べるようにする */
 function drawRubric(){
@@ -1059,7 +1238,9 @@ function band(dims,cur,peak,foe,hits,key,wmap,wwhy,hist){
       return '<span class="cell"></span>';}).join('');
     const isHit=hits&&hits.arg===key&&hits.dims.includes(d.id);
     const hd=hits&&hits.holds&&hits.holds[d.id];
-    const holdT=hd?'<span class="tagline tag-hold">保留・'+hd.t+'</span>':'';
+    /* 2:42 で「暫定」、3:38 で「保留・要確認」に上がる */
+    const hpv=hd&&hd.state==='provisional';
+    const holdT=hd?'<span class="tagline '+(hpv?'tag-prov':'tag-hold')+'">'+(hpv?'暫定':'保留')+'・'+hd.t+'</span>':'';
     const w=wmap?'<span class="dw'+(wmap[d.id]!==1?' up':'')+'">×'+wmap[d.id].toFixed(1)+'</span>':'';
     const wy=(wwhy&&wwhy[d.id])?'<span class="dwy">'+wwhy[d.id]+'</span>':'';
     return '<div class="dim'+(isHit?' hit':'')+'"><span class="dn">'+d.n+holdT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span>'+w+wy+hs+'</div>';
@@ -1095,21 +1276,58 @@ function bridge(st,v,wm){
     '<p>総括は点数を持たず、観点ごとの重みとして効く。重みが動いたのは'+moved+
     '。判定はこの重み反映後の差で決まる。</p>'+
     (v.sens?v.sens.map(s=>'<p class="bs">保留の'+(ARGS[s.arg].side==='aff'?'肯定':'否定')+'側「'+DIMN[s.dim]+'」'+s.cur+'（'+s.h.t+'）は暫定値のまま含めている。'+
+      fixCond(v.sens,s)+
       (s.mode==='alts'?(s.flips.length?'代替値では判定が逆転しうる。':'代替値でも判定の向きは変わらない。')
                       :(s.flip===null?'1まで下げても向きは変わらない。':s.flip+'以下なら判定は逆転する。'))+'</p>').join(''):'')+
     '</div>';
 }
-/* v19 総括：観点ごとの比較。4状態（肯定が制した／否定が制した／決着なし／土俵外）を色と記号で区別する */
+/* 総括：観点ごとの比較。4状態（肯定が制した／否定が制した／決着なし／土俵外）を色と記号で区別する */
 const CMPLABEL={aff:['●','肯定が制した'],neg:['●','否定が制した'],none:['—','決着なし'],off:['·','土俵外']};
 /* 重みがその値になった理由。なぜ 1.5 なのかをその場で読めるようにする */
 /* 誰が優位なのかを名指しする。「優位側が制した」だけではどちらか読めない */
 const WRULE=(w,c)=>w==='up'?'優位の'+(c>0?'肯定':'否定')+'が制した'
                   :w==='down'?'劣勢の'+(c>0?'肯定':'否定')+'が制した':'';
+/* 重みの条件表。1.5 と 0.5 の主語を、どちらが制したかで一意に定める */
+const WTBL=[['立論の差で優位な側が制した','1.5','自分が優位な土俵で比較を示した。差を広げる'],
+            ['立論の差で劣位な側が制した','0.5','相手が優位な土俵で比較を示し返した。差を削る'],
+            ['決着なし','1.0','動かさない'],
+            ['土俵にしない観点','1.0 固定','比較の対象外']];
+const wCond=()=>'<table class="wtbl"><thead><tr><th>総括で比較を制した側</th><th>重み</th><th>意味</th></tr></thead><tbody>'+
+  WTBL.map(r=>'<tr><th>'+r[0]+'</th><td class="ww">'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')+'</tbody></table>';
+/* この試合に出てこない重みは、実際に出た観点から仮定例を計算して示す。数値は手打ちしない */
+function wLead(v){ return v.rows.filter(r=>r.arena&&r.c!==0).sort((a,b)=>Math.abs(b.dk)-Math.abs(a.dk))[0]; }
+function wHypo(v){
+  if(v.rows.some(r=>r.w===0.5)) return '';
+  const r=wLead(v); if(!r) return '';
+  const lose=r.c>0?'否定':'肯定', up=r.dk>0?'肯定':'否定', w2=cmpW(r.dk,-r.c,r.arena);
+  return '<p class="whyp">この試合では 0.5 の観点はない。仮に'+lose+'側が総括で'+r.d.n+'の比較を制していれば、重みは '+
+    w2.toFixed(1)+' になり、'+up+'の'+Math.abs(r.dk)+'点優位が '+fmt(Math.abs(r.dk*w2))+' 点優位に縮んでいた。</p>';
+}
+/* 攻防の点数と重みは別のものを測っている。同じ未応答を重ねて数えたのではないことを、推移から示す */
+function roleSplit(v,st){
+  const r=wLead(v); let ex='';
+  if(r){
+    const h=['ADV','DIS'].map(k=>st[k]&&st[k].hist&&st[k].hist[r.d.id]).filter(l=>l&&l.length>1)
+              .sort((a,b)=>b.length-a.length)[0];
+    if(h){
+      const K=['〇','一','二','三','四','五','六','七'], kn=K[h.length]||String(h.length);
+      const mover=['ADV','DIS'].find(k=>st[k]&&st[k].hist&&st[k].hist[r.d.id]===h);
+      const ms=ARGS[mover].side==='aff'?'肯定':'否定', win=r.c>0?'肯定':'否定', lose=r.c>0?'否定':'肯定';
+      ex='<p>'+r.d.n+'では、'+h.slice(1).map(x=>tlink(x.t)+' の'+x.k).join('と')+'で'+ms+'側の点数が '+
+        h.map(x=>x.v).join('→')+' と動いた。重みが'+r.w.toFixed(1)+'になったのは、総括で'+win+
+        '側がこの観点を比較の軸にし、'+lose+'側の総括がその軸に乗らなかったからである。'+kn+'つの段階の'+kn+
+        'つの事実であり、同じ事実を'+kn+'度数えたのではない。</p>';
+    }
+  }
+  return '<div class="wrole"><p>攻防の点数（立論→攻撃→防御）は、その論点がどれだけ残っているかを表す。重みは、総括でどの土俵に比較を載せたかを表す。重みは<b>総括の発言だけ</b>から決め、攻撃や防御の結果からは決めない。</p>'+ex+
+    '<p>計算は明快だが、この重み付けが妥当かどうかは計算式だけでは証明できない。重みの根拠となる発言を、時刻で示す。</p>'+
+    basisList(v)+'</div>';
+}
 function drawCmp(st){
   const v=judge(st), show=!!(v&&v.on);
   $('cmph').classList.toggle('hide',!show); $('cmp').classList.toggle('hide',!show);
   if(!show) return;
-  $('cmp').innerHTML=v.rows.map(r=>{
+  $('cmp').innerHTML=wCond()+wHypo(v)+v.rows.map(r=>{
     const state=!r.arena?'off':r.c>0?'aff':r.c<0?'neg':'none';
     const w=r.w>1?'up':r.w<1?'down':'flat';
     const [mark,label]=CMPLABEL[state];
@@ -1122,10 +1340,10 @@ function drawCmp(st){
       '<span class="cw"><b>'+(state==='off'?'1.0 固定':'×'+r.w.toFixed(1))+'</b>'+
         (rule?'<em>'+rule+'</em>':'')+'</span>'+
       '<p class="cy">'+r.short+'</p></div>';
-  }).join('');
+  }).join('')+roleSplit(v,st);
 }
 function prevVal(idx,arg,dim){let v=null;for(let i=0;i<idx;i++){const e=LINES[i].ev;if(!e||e.arg!==arg)continue;if(e.kind==='intro')v=e.set[dim];else if(e.hits&&dim in e.hits)v=e.hits[dim];}return v}
-/* v19 判定文の数値差し込み。文面は手書きのまま、数字だけを judge() の結果から埋める。
+/* 判定文の数値差し込み。文面は手書きのまま、数字だけを judge() の結果から埋める。
    未知のプレースホルダは書き換えずそのまま残す。 */
 const tpl=(s,V)=>String(s).replace(/\{(\w+)\}/g,(m,k)=>(k in V)?V[k]:m);
 function vnum(v){
@@ -1138,25 +1356,62 @@ function vnum(v){
           sideEn:v.wsum>0?'Affirmative':v.wsum<0?'Negative':'a tie',
           rawSide:v.raw>0?'肯定側':v.raw<0?'否定側':'引き分け'};
 }
+/* 判定の冒頭に置く、確認が必要な項目の一覧。件数も行もデータから作る。
+   人が確認すると値が変わるもの（保留）と、確認しても変わらないもの（確認状態）を別の見出しで並べる。 */
+function drawTodo(v){
+  if(!v||(!v.sens&&!VERIFY.length)) return '';
+  const link=(j,k,t)=>'<a class="jl" href="#" data-j="'+j+'" data-k="'+k+'">'+t+'</a>';
+  const rows=(v.sens||[]).map((s,i)=>{
+    const side=ARGS[s.arg].side==='aff'?'肯定':'否定';
+    const r=s.h.runs, rg=r?Math.max.apply(null,r)-Math.min.apply(null,r):null;
+    return '<li><b>'+side+'側「'+DIMN[s.dim]+'」</b><span class="tv">暫定値 '+s.cur+'</span>'+
+      '<span class="tk">'+(s.h.state==='provisional'?'暫定':'保留・要確認')+'：'+s.h.t+'</span>'+
+      (r?'<span class="tk dm">デモ用の値（未実測）　採点 '+r.length+' 回・範囲 '+rg+'・閾値 '+s.h.threshold+'</span>':'')+
+      link('sens',i,'単独の感度')+(v.combo&&v.combo.length?link('combo',0,'組合せ表'):'')+'</li>';
+  }).join('');
+  return '<div class="todo"><p class="th">確定の前に人が確認する項目　'+((v.sens||[]).length)+'件</p>'+
+    (rows?'<ul class="tdl">'+rows+'</ul>':'')+
+    (VERIFY.length?'<p class="th2">参考：確認されていない事実　'+VERIFY.length+'件</p><ul class="tdl">'+
+      VERIFY.map(x=>'<li><b>'+tlink(x.t)+'　'+x.target+'：'+x.status+'</b><span class="tk">確認しても値は動かない</span></li>').join('')+
+      '</ul>':'')+'</div>';
+}
+/* 重みの根拠となる発言。判定の「根拠」と、総括の役割分離の両方で使う */
+const basisList=v=>'<ul class="wsrc">'+v.rows.map(x=>'<li><b>'+x.d.n+'</b>'+tlink(x.src)+'</li>').join('')+'</ul>';
 /* 観点ごとの d_k・w_k・積と、素点差の合計／重み反映後の合計を並べる */
-function drawBrk(v,prose=true){
+/* 判定の結論と、確認が必要な項目の一覧。
+   整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
+   どこで小数が生まれたのかが列を追うだけで分かる。 */
+function drawBrkHead(v){
   if(!v) return '';
-  /* 整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
-     どこで小数が生まれたのかが列を追うだけで分かる。 */
-  const ld=n=>n===0?'互角':(n>0?'肯定':'否定')+'+'+Math.abs(n);
   const s1=n=>(n>0?'+':n<0?'−':'±')+(Number.isInteger(n)?Math.abs(n):Math.abs(n).toFixed(1));
   const flip=v.raw!==0&&Math.sign(v.raw)!==Math.sign(v.wsum);
   return '<p class="brkv">暫定判定　'+v.side+'、'+Math.abs(v.wsum).toFixed(1)+'点差</p>'+
     '<p class="brkd">素点差 '+s1(v.raw)+'（'+vnum(v).rawSide+'）　→　重み反映後 <b>'+s1(v.wsum)+'</b>（'+v.side+'）'+
-    (flip?'　総括の比較で向きが変わった。':'')+'</p>'+
-    '<table class="brk">'+
+    (flip?'　総括の比較で向きが変わった。':'')+'</p>'+drawTodo(v);
+}
+/* 判定の内訳表。観点ごとの d_k・w_k・積と、素点差／重み反映後の合計を並べる */
+function drawBrkTable(v,prose=true){
+  if(!v) return '';
+  const ld=n=>n===0?'互角':(n>0?'肯定':'否定')+'+'+Math.abs(n);
+  const s1=n=>(n>0?'+':n<0?'−':'±')+(Number.isInteger(n)?Math.abs(n):Math.abs(n).toFixed(1));
+  return '<table class="brk">'+
     '<thead><tr><th>観点</th><th>総括前の差</th><th>重み</th><th>効いた差</th></tr></thead><tbody>'+
     v.rows.map(r=>
       '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+ld(r.dk)+
         '</td><td>×'+r.w.toFixed(1)+(r.arena?'':' 固定')+'</td><td>'+s1(r.prod)+'</td></tr>'+
       (prose?'<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>':'')).join('')+
     '</tbody><tfoot><tr class="raw"><th colspan="3">素点差の合計</th><td>'+s1(v.raw)+'</td></tr>'+
-    '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>'+drawSens(v);
+    '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>'+
+    (VERIFY.length?'<p class="vfn">'+VERIFY.map(x=>tlink(x.t)+'　'+x.target+'：'+x.status).join('／')+
+      '。エンジンは資料の読み方の正誤を判定していない。人が確認しても値が動かないため、保留（要確認）とは別に扱う。</p>':'')+
+    ((v.combo&&v.combo.length)?'<p class="tolink"><a class="jl" href="#" data-j="combo" data-k="0">保留'+
+      v.sens.length+'件を同時に動かした場合 → 組合せ表</a></p>':'');
+}
+/* 保留まわり。単独の感度と、その断面をまとめた組合せ表 */
+const drawBrkHolds=v=>drawSens(v)+drawCombo(v);
+/* 吹き出し用。区分の見出しを付けず、結論から順に通しで出す */
+function drawBrk(v,prose=true){
+  return v?drawBrkHead(v)+drawBrkTable(v,prose)+drawBrkHolds(v):'';
 }
 /* 総括比較の note に入れる、観点ごとの内訳。数値はすべて judge() から生成するので
    立論のスコアや c_k を変えても文章とずれない。 */
@@ -1179,7 +1434,7 @@ function cmpSteps(v,st){
       '<div class="ccal">'+sfmt(r.dk)+' × '+r.w.toFixed(1)+' = '+sfmt(r.prod)+'</div></div>';
   }).join('')+
   '<div class="ctot">合計すると、素点の差 <b>'+sfmt(v.raw)+'</b> が重み反映後は <b>'+sfmt(v.wsum)+
-  '</b> になる。側ごとに見れば肯定 '+fmt(v.wa)+' 対 否定 '+fmt(v.wn)+'。判定はこの重み反映後の差で決まる。</div>';
+  '</b> になる。側ごとに見れば肯定 '+fmt(v.wa)+' 対 否定 '+fmt(v.wn)+'。判定はこの重み反映後の差で決まる。</div>'+roleSplit(v,st);
 }
 function drawNotes(upto){
   let h='';
@@ -1189,14 +1444,30 @@ function drawNotes(upto){
     /* 推移チップ。値の前後に加えて、段階表のどの項目を適用したかを出す */
     if(e.hits) hits='<div class="hits">'+Object.keys(e.hits).map(d=>{const p=prevVal(i,e.arg,d),r=e.rule&&RULEN[e.rule[d]];
       return '<span>'+DIMN[d]+'　'+(p===null?'':p+' → ')+e.hits[d]+(r?'<em>'+r+'</em>':'')+'</span>'}).join('')+'</div>';
-    const brk=e.kind==='verdict'?drawBrk(v):'';
+    const isVd=e.kind==='verdict';
     /* 立論の採点：観点ごとに「観点名は N。理由」を DIMS の順で並べる。N は set から取る */
     const axes=(e.kind==='intro'&&e.why)?DIMS.map(d=>'<p><b>'+d.n+'は'+e.set[d.id]+'。</b>'+e.why[d.id]+
       ' <a class="rb" href="#" data-v="'+e.set[d.id]+'">尺度 '+e.set[d.id]+' の基準</a></p>').join(''):'';
     const stp=(e.kind==='sumcmp'&&v&&v.on)?cmpSteps(v,stU):'';
     /* 準備時間への言及は採点根拠から切り離し、「参考」として別枠に出す */
     const ref=e.ref?'<p class="ref"><b>参考（採点根拠ではない）</b>'+tlink(e.ref)+'</p>':'';
-    h+='<div class="note" data-kind="'+e.kind+'"><span class="k">'+LINES[i].time+'　'+e.k+'</span>'+brk+axes+e.body.map(p=>'<p>'+tlink(tpl(p,V))+'</p>').join('')+stp+ref+hits+(e.src?'<div class="src">'+tlink(e.src)+'</div>':'')+'</div>';
+    /* 確認状態。保留の印とは別枠にし、確認しても値が動かない未確認であることを示す */
+    const vfy=e.verify?'<p class="vfy"><b>'+e.verify.target+'：'+e.verify.status+'</b>'+tlink(e.verify.note)+'</p>':'';
+    const bodyH=e.body.map(p=>'<p>'+tlink(tpl(p,V))+'</p>').join('');
+    const srcH=e.src?'<div class="src">'+tlink(e.src)+'</div>':'';
+    if(e.judg){
+      /* 4区分表示。根拠は既存の src、点数の変更は既存の推移チップ（判定では内訳表）を
+         そのまま見出しの下に置く。新しく足すのは「判断」と「未確認事項」だけ。 */
+      const sec=(t,c)=>c?'<div class="sec"><span class="seclab">'+t+'</span><div class="secbody">'+c+'</div></div>':'';
+      const openH=[].concat(e.open||[]).map(p=>'<p>'+tlink(tpl(p,V))+'</p>').join('')+vfy+(isVd?drawBrkHolds(v):'');
+      h+='<div class="note struct" data-kind="'+e.kind+'"><span class="k">'+LINES[i].time+'　'+e.k+'</span>'+
+        (isVd?drawBrkHead(v):'')+
+        sec('判断','<p class="jg">'+tlink(tpl(e.judg,V))+'</p>'+bodyH+stp)+
+        sec('根拠',isVd?basisList(v):srcH)+
+        sec('点数の変更',isVd?drawBrkTable(v):hits)+
+        sec('未確認事項',openH||'<p class="non">なし</p>')+ref+'</div>';
+    }else
+    h+='<div class="note" data-kind="'+e.kind+'"><span class="k">'+LINES[i].time+'　'+e.k+'</span>'+axes+bodyH+stp+vfy+ref+hits+srcH+'</div>';
   }
   $('notes').innerHTML=h;
 }
@@ -1272,6 +1543,7 @@ function goto(i){
     });
   }
   CHIPS.forEach((c,k)=>c.classList.toggle('on',k===ln.stage));
+  if(CHIPS[ln.stage]) showChip(CHIPS[ln.stage]);
   $('clock').textContent=ln.time;
 }
 function fallbackMs(t){ return Math.max(2200,t.length*26)/{slow:.6,normal:1,fast:1.8}[$('sp').value]; }
