@@ -326,6 +326,23 @@ a.rb:hover{color:var(--aff)}
 .sens .sl span.flip i{color:var(--aff)}
 .sens .st{margin:5px 0 0;font-size:10.5px;line-height:1.5;color:var(--ink-soft)}
 .bubble .sens .sh{font-size:12px}.bubble .sens .st{font-size:11.5px}.bubble .sens .sl span{font-size:12px}
+/* 保留2件以上の組合せ感度。単独の感度（.sens）は、この表の行または列にあたる */
+.cgrid{margin:6px 0 2px;padding:6px 9px;background:#FBF7EA;border:1px solid #E6DCB8;border-radius:3px}
+.cgrid .ch{margin:0 0 5px;font-size:10.5px;color:var(--warn);font-weight:600;letter-spacing:.02em}
+.cgrid .cw{overflow-x:auto}
+.cgrid table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.35;font-variant-numeric:tabular-nums;background:#fff}
+.cgrid th,.cgrid td{padding:3px 5px;border:1px solid var(--rule-fine);text-align:center;font-weight:400;color:var(--ink-soft);white-space:nowrap}
+.cgrid thead th{font-size:10px;color:var(--ink-faint);font-weight:600}
+.cgrid thead th.cnr{text-align:left;white-space:normal;padding:3px 6px}
+.cgrid thead th.cnr i{color:var(--ink-soft);font-weight:600}
+.cgrid tbody th{text-align:left;color:var(--ink-soft);font-weight:600}
+.cgrid th i{display:block;font-style:normal;font-weight:400;font-size:9.5px;color:var(--ink-faint);line-height:1.3}
+.cgrid td.now{border-color:var(--warn);color:var(--ink);font-weight:700}
+.cgrid td.flip{color:var(--aff);font-weight:600}
+.cgrid td.tie{color:var(--warn);font-weight:700;background:#FBF7EA}
+.cgrid .cs{margin:6px 0 0;font-size:10.5px;line-height:1.5;color:var(--ink-soft)}
+.cgrid .cs b{display:block;margin-top:3px;color:var(--ink);font-weight:600}
+.bubble .cgrid .ch{font-size:12px}.bubble .cgrid .cs{font-size:11.5px}.bubble .cgrid table{font-size:12px}
 .brg .bs{color:var(--warn)}
 .foot{padding:15px 18px 32px;font-size:12px;color:var(--ink-faint);border-top:1px solid var(--rule);line-height:1.75}
 .foot p{margin:0 0 5px;max-width:58em}
@@ -972,6 +989,29 @@ function holdSens(st,arg,dim,on,h){
   let flipUp=null;for(let v=cur+1;v<=10;v++){if(Math.sign(at(v))!==now){flipUp=v;break}}
   return {arg,dim,cur,h,mode:'scan',list,flip,flipUp};
 }
+/* 組合せ感度表の軸。その保留がとりうる値を保留のデータから作る。
+   alts があれば暫定値＋代替値、無ければ暫定値・単独の逆転境界・その1つ下。手打ちの値は置かない。 */
+function holdAxis(st,arg,dim,on,h){
+  const cur=st[arg].cur[dim];
+  if(h&&h.alts) return [{v:cur,l:'暫定値'}].concat(h.alts.map(a=>({v:a.v,l:'代替値'})));
+  const s=holdSens(st,arg,dim,on,h),out=[{v:cur,l:'暫定値'}];
+  if(s.flip!==null){ out.push({v:s.flip,l:'逆転境界'}); if(s.flip>1) out.push({v:s.flip-1,l:'境界の1つ下'}); }
+  return out;
+}
+const setDim=(st,arg,dim,v)=>({...st,[arg]:{...st[arg],cur:{...st[arg].cur,[dim]:v}}});
+/* 保留を2件ずつ組み合わせ、両方を同時に動かしたときの最終差を出す。
+   セルは単独感度と同じ calc() で計算し直すので、値を動かせば重みも掛け直される。
+   保留が3件以上になっても動くよう総当たりで組を作る（現行は2件なので表は1枚）。 */
+function comboGrid(st,on,sens){
+  const out=[];
+  for(let i=0;i<sens.length;i++)for(let j=i+1;j<sens.length;j++){
+    const R=sens[i],C=sens[j];
+    const rows=holdAxis(st,R.arg,R.dim,on,R.h),cols=holdAxis(st,C.arg,C.dim,on,C.h);
+    out.push({R,C,rows,cols,cells:rows.map(r=>cols.map(c=>
+      calc(setDim(setDim(st,R.arg,R.dim,r.v),C.arg,C.dim,c.v),on).wsum))});
+  }
+  return out;
+}
 function judge(st){
   if(!st.ADV||!st.DIS) return null;
   const on=!!st.CMP;
@@ -983,8 +1023,13 @@ function judge(st){
   return {rows,raw,wsum,on,wa,wn,moved:rows.filter(r=>r.w!==1).length,
           aff:total(st.ADV),neg:total(st.DIS),
           sens:sens.length?sens:null,
+          combo:sens.length>1?comboGrid(st,on,sens):null,
           side:wsum>0?'肯定側':wsum<0?'否定側':'引き分け',margin:Math.abs(wsum)};
 }
+/* 単独の感度は、他方の保留を暫定値に固定した断面である。その固定条件をデータから文にする。
+   側名も値も持たず、保留が増えれば条件も自動で増える。 */
+const fixCond=(sens,s)=>sens.filter(x=>x!==s)
+  .map(x=>(ARGS[x.arg].side==='aff'?'肯定':'否定')+'側の'+DIMN[x.dim]+'を暫定値'+x.cur+'に固定した場合、').join('');
 /* 保留の値を動かしたときの最終差。現在の値から、向きが変わる値の一つ先までを並べる */
 function drawSens(v){
   if(!v||!v.sens) return '';
@@ -995,9 +1040,9 @@ function drawSens(v){
     if(s.mode==='alts'){
       const cells=s.list.map((x,i)=>'<span'+(i===0?' class="now"':(Math.sign(x.w)!==Math.sign(nowW)?' class="flip"':''))+'>'+
         x.v+'<i>'+sideOf(x.w)+' '+fmt(Math.abs(x.w))+'</i><em>'+x.l+'</em></span>').join('');
-      const line=s.flips.length
+      const line=fixCond(v.sens,s)+(s.flips.length
         ?s.flips.map(x=>x.l+'は'+other+'側に逆転する').join('。')+'。'
-        :'いずれの場合も判定の向きは変わらない（最終差は '+s.list.map(x=>sideOf(x.w)+' '+fmt(Math.abs(x.w))).join('／')+'）。値は人が確認するまで暫定である。';
+        :'いずれの代替値でも判定の向きは変わらない（最終差は '+s.list.map(x=>sideOf(x.w)+' '+fmt(Math.abs(x.w))).join('／')+'）。値は人が確認するまで暫定である。');
       return '<div class="sens"><p class="sh">保留の感度　'+side+'側「'+dn+'」'+s.cur+'（'+s.h.t+'・要確認）を代替値に置き換えた場合の最終差</p>'+
         '<div class="sl alts">'+cells+'</div><p class="st">'+line+'</p></div>';
     }
@@ -1005,12 +1050,38 @@ function drawSens(v){
     const cells=s.list.filter(x=>x.v<=s.cur&&x.v>=lo).map(x=>
       '<span'+(x.v===s.cur?' class="now"':(Math.sign(x.w)!==Math.sign(nowW)?' class="flip"':''))+'>'+
       x.v+'<i>'+sideOf(x.w)+' '+fmt(Math.abs(x.w))+'</i></span>').join('');
-    const line=s.flip===null
+    const line=fixCond(v.sens,s)+(s.flip===null
       ?'1まで下げても判定の向きは変わらない。'
-      :'この値が'+s.flip+'以下なら判定は'+other+'側に逆転する。'+s.cur+'から'+(s.cur-s.flip)+'点下がると結論が変わる。';
+      :'この値が'+s.flip+'以下なら判定は'+other+'側に逆転する。'+s.cur+'から'+(s.cur-s.flip)+'点下がると結論が変わる。');
     const up=s.flipUp!==null?'逆に'+s.flipUp+'以上なら'+other+'側に転じる。':'';
     return '<div class="sens"><p class="sh">保留の感度　'+side+'側「'+dn+'」の暫定値 '+s.cur+'（'+s.h.t+'）を動かした場合の最終差</p>'+
       '<div class="sl">'+cells+'</div><p class="st">'+line+up+'</p></div>';
+  }).join('');
+}
+/* 組合せ感度表。行と列は保留の値、セルは最終差。数値はすべて計算結果で、手打ちはない。
+   同点はエンジンが判定を出さない場所なので、点差ではなく「同点」と出す。 */
+function drawCombo(v){
+  if(!v||!v.combo||!v.combo.length) return '';
+  const nm=s=>(ARGS[s.arg].side==='aff'?'肯定':'否定')+'側「'+DIMN[s.dim]+'」';
+  /* 左上のセルは狭いので、側と観点を中黒でつないだ短い形にし、行と列を別の行に置く */
+  const snm=s=>(ARGS[s.arg].side==='aff'?'肯定':'否定')+'・'+DIMN[s.dim];
+  const cell=w=>w===0?'同点':(w>0?'肯定':'否定')+' '+fmt(Math.abs(w))+'点差';
+  return v.combo.map(g=>{
+    /* 左上のセルが両方とも暫定値、つまり現在の判定。ここからの符号の変化を見る */
+    const sgn=Math.sign(g.cells[0][0]);
+    const head='<tr><th class="cnr"><i>行　'+snm(g.R)+'</i><i>列　'+snm(g.C)+'</i></th>'+
+      g.cols.map(c=>'<th>'+c.v+'<i>'+c.l+'</i></th>').join('')+'</tr>';
+    const body=g.rows.map((r,ri)=>'<tr><th>'+r.v+'<i>'+r.l+'</i></th>'+
+      g.cells[ri].map((w,ci)=>{
+        const k=w===0?'tie':(ri===0&&ci===0)?'now':(Math.sign(w)!==sgn?'flip':'');
+        return '<td'+(k?' class="'+k+'"':'')+'>'+cell(w)+'</td>';
+      }).join('')+'</tr>').join('');
+    return '<div class="cgrid"><p class="ch">保留の組合せ感度　'+nm(g.R)+'と'+nm(g.C)+
+      'を同時に動かした場合の最終差</p><div class="cw"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+      '<p class="cs">上の単独の感度は、この表の一断面である。'+nm(g.R)+'の感度は'+nm(g.C)+'＝'+g.cols[0].v+
+      'の列を縦に読んだもの、'+nm(g.C)+'の感度は'+nm(g.R)+'＝'+g.rows[0].v+
+      'の行を横に読んだもので、別々の計算をしているのではない。2件を同時に動かすと、単独では現れない同点や、逆転しない組合せが出る。'+
+      '<b>同点の場合、エンジンは判定を出さない。人が確認して確定する。</b></p></div>';
   }).join('');
 }
 /* 解説中の時刻（例 2:18）を、その発言へ移動するリンクにする。LINES にない時刻は文字のまま残す */
@@ -1095,6 +1166,7 @@ function bridge(st,v,wm){
     '<p>総括は点数を持たず、観点ごとの重みとして効く。重みが動いたのは'+moved+
     '。判定はこの重み反映後の差で決まる。</p>'+
     (v.sens?v.sens.map(s=>'<p class="bs">保留の'+(ARGS[s.arg].side==='aff'?'肯定':'否定')+'側「'+DIMN[s.dim]+'」'+s.cur+'（'+s.h.t+'）は暫定値のまま含めている。'+
+      fixCond(v.sens,s)+
       (s.mode==='alts'?(s.flips.length?'代替値では判定が逆転しうる。':'代替値でも判定の向きは変わらない。')
                       :(s.flip===null?'1まで下げても向きは変わらない。':s.flip+'以下なら判定は逆転する。'))+'</p>').join(''):'')+
     '</div>';
@@ -1156,7 +1228,7 @@ function drawBrk(v,prose=true){
         '</td><td>×'+r.w.toFixed(1)+(r.arena?'':' 固定')+'</td><td>'+s1(r.prod)+'</td></tr>'+
       (prose?'<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>':'')).join('')+
     '</tbody><tfoot><tr class="raw"><th colspan="3">素点差の合計</th><td>'+s1(v.raw)+'</td></tr>'+
-    '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>'+drawSens(v);
+    '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>'+drawSens(v)+drawCombo(v);
 }
 /* 総括比較の note に入れる、観点ごとの内訳。数値はすべて judge() から生成するので
    立論のスコアや c_k を変えても文章とずれない。 */
