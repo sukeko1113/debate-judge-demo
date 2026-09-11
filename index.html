@@ -1397,7 +1397,7 @@ function drawTrace(st,v){
   };
   return '<div class="trc"><p class="th">Strength の推移　両側を同じ時間軸に並べる</p>'+
     '<table><thead><tr><th>時刻</th><th>肯定</th><th>否定</th><th>動いたところ</th></tr></thead><tbody>'+
-    TR.map((e,i)=>'<tr'+(i===TR.length-1?' class="now"':'')+'><th>'+(e.k==='総括'?'総括後':e.t)+'</th>'+
+    TR.map((e,i)=>'<tr'+(i===TR.length-1?' class="now"':'')+'><th>'+(e.k==='総括'?'総括後':tlink(e.t))+'</th>'+
       num(e,'ADV','DIS')+num(e,'DIS','ADV')+'<td class="cz">'+cz(e)+'</td></tr>').join('')+
     '</tbody></table>'+
     '<p class="tn">色の付いた太字が、その時点で前に出ている側。網かけの行がいまの場面。'+
