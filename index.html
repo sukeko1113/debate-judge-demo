@@ -151,6 +151,21 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .dim .dwy{grid-column:1/5;text-align:right;font-size:9.5px;line-height:1.3;color:var(--ink-faint);margin-top:1px}
 @keyframes cmpflash{0%,100%{background:transparent}25%{background:#FFF0C4}}
 .cmpr.flash{animation:cmpflash 1.1s ease-out 2}
+/* Strength の推移。両側を同じ時間軸に並べ、先に出ている側と、動かした発言を対応させる */
+.trc{margin-top:9px;padding:6px 9px;background:#F5F4F0;border:1px solid var(--rule-fine);border-radius:3px}
+.trc .th{margin:0 0 3px;font-size:10px;letter-spacing:.04em;color:var(--ink-faint);font-weight:600}
+.trc table{width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.35;font-variant-numeric:tabular-nums}
+.trc th,.trc td{padding:1.5px 4px;border-bottom:1px solid var(--rule-fine);text-align:right;font-weight:400;color:var(--ink-soft);vertical-align:top}
+.trc thead th{font-size:9.5px;color:var(--ink-faint);border-bottom:1px solid var(--rule)}
+.trc tbody th{text-align:left;white-space:nowrap;color:var(--ink-faint);width:3.6em}
+.trc td.a,.trc td.n{width:3.8em;white-space:nowrap}
+.trc td.na{color:var(--ink-faint)}
+.trc td.ld{font-weight:700}
+.trc td.a.ld{color:var(--aff)} .trc td.n.ld{color:var(--neg)}
+.trc td i{font-style:normal;font-size:9px;margin-left:3px;color:var(--ink-faint)}
+.trc td.cz{text-align:left;font-size:9.5px;line-height:1.4;color:var(--ink-faint)}
+.trc tr.now th,.trc tr.now td{background:#FBF4DC;color:var(--ink)}
+.trc .tn{margin:4px 0 0;font-size:9.5px;line-height:1.45;color:var(--ink-faint)}
 /* Strength と重み反映後を並べ、判定の差がどこから来たかを繋ぐ */
 .brg{margin-top:8px;padding:7px 9px;background:#EFF2F6;border-radius:3px}
 .brg .bl{font-size:11.5px;line-height:1.5;color:var(--ink-soft);font-variant-numeric:tabular-nums}
@@ -628,6 +643,7 @@ const SUMCMP={
         src:'該当する比較の主張なし'}
 };
 const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
+const DIMAX=Object.fromEntries(DIMS.map(d=>[d.id,d.axis]));
 /* 採点基準。立論の10点尺度と、攻防で値が動く幅を段階表として固定する。
    攻撃の到達点は攻撃の種類で決まり、攻撃前の値には依らない。防御の回復幅も種類で決まる。
    各 hits には rule でどの段階を適用したかを付け、解説の推移チップに出す。 */
@@ -1076,26 +1092,52 @@ function showChip(c){
 }
 
 function state(upto){
-  const st={};
+  const st={},TR=[];
+  /* Strength は側ごとの量で、どの観点の行にも属さない（min の対象が入れ替わるため）。
+     そこで観点ごとの hist とは別に、両側共通の時間軸で1本の系列を持つ。
+     upto までしか回さないので、再生位置を戻せば未来の要素は入らない。 */
+  const snap=(t,k,cause,W)=>{
+    const e={t,k,cause:cause||[],side:{}},pv=TR[TR.length-1];
+    for(const a of ['ADV','DIS']){
+      if(!st[a]){e.side[a]=null;continue}
+      const q=probOf(st[a].cur),I=st[a].cur[IDIM.id],w=(W&&W[a])||1,F=q.v*I*w;
+      const b=pv&&pv.side[a];
+      e.side[a]={P:q.v,Pdims:q.dims,I,S:q.v*I,W:w,F,d:b?F-b.F:null};
+    }
+    TR.push(e);
+  };
   for(let i=0;i<=upto;i++){const e=LINES[i].ev; if(!e) continue;
-    if(e.kind==='sumcmp'){ st.CMP=true; continue; }
+    if(e.kind==='sumcmp'){ st.CMP=true;
+      /* 重みの適用も1要素として積む。倍率は calc() から取り、手で置かない */
+      if(st.ADV&&st.DIS){const c=calc(st,true); snap(LINES[i].time,'総括',[],{ADV:c.A.W,DIS:c.D.W});}
+      continue; }
     /* hist は観点ごとの推移。立論の値から始まり、攻撃・防御・落としで動くたびに時刻と適用した段階を積む */
-    if(e.kind==='intro') st[e.arg]={cur:{...e.set},peak:{...e.set},drop:false,holds:{},
+    if(e.kind==='intro'){ st[e.arg]={cur:{...e.set},peak:{...e.set},drop:false,holds:{},
       hist:Object.fromEntries(DIMS.map(d=>[d.id,[{v:e.set[d.id],t:LINES[i].time,k:'立論'}]]))};
-    else if(e.hits&&st[e.arg]){const s=st[e.arg]; for(const d in e.hits){s.cur[d]=e.hits[d];s.peak[d]=Math.max(s.peak[d],e.hits[d]);
-      s.hist[d].push({v:e.hits[d],t:LINES[i].time,k:KINDJA[e.kind]||e.kind,r:e.rule&&e.rule[d]})} if(e.kind==='drop')s.drop=true;}
+      snap(LINES[i].time,'立論',[{arg:e.arg,intro:true}]); }
+    else if(e.hits&&st[e.arg]){const s=st[e.arg],was={};
+      for(const d in e.hits){was[d]=s.cur[d];s.cur[d]=e.hits[d];s.peak[d]=Math.max(s.peak[d],e.hits[d]);
+        s.hist[d].push({v:e.hits[d],t:LINES[i].time,k:KINDJA[e.kind]||e.kind,r:e.rule&&e.rule[d]})}
+      if(e.kind==='drop')s.drop=true;
+      snap(LINES[i].time,KINDJA[e.kind]||e.kind,
+        Object.keys(e.hits).map(d=>({arg:e.arg,dim:d,from:was[d],to:e.hits[d],r:e.rule&&e.rule[d]})));}
     /* 保留は観点ごとに複数持てる。t は短い種別（資料同一性／採点の揺れ）、alts があれば代替値の候補 */
     if(e.hold&&st[e.hold.arg]) st[e.hold.arg].holds[e.hold.dim]=e.hold;
   }
+  st.TRACE=TR;
   return st;
 }
 /* Probability は属する3観点の最小値。規定2.1.1.3 は三論点を並列に課しており、
    証明されていない環があればそこで鎖は切れる。捨てた側の値も all に残す。
    防御で回復すれば、Probability を決める環は入れ替わる。 */
 function probOf(cur){
-  const lo=PDIMS.reduce((a,d)=>cur[d.id]<cur[a.id]?d:a);
-  return {v:cur[lo.id],dim:lo,all:PDIMS.map(d=>({d,v:cur[d.id],min:cur[d.id]===cur[lo.id]}))};
+  /* 最小値は同値で並ぶことがある（立論時点の肯定側は発生可能性7と解決性7が並ぶ）。
+     どちらかを恣意的に選ばず、並んでいる観点をすべて dims に入れる。 */
+  const v=Math.min.apply(null,PDIMS.map(d=>cur[d.id]));
+  return {v,dims:PDIMS.filter(d=>cur[d.id]===v),all:PDIMS.map(d=>({d,v:cur[d.id],min:cur[d.id]===v}))};
 }
+/* 並んで最小の観点名。観点名自体に中黒が入るので「と」でつなぐ */
+const pdn=x=>x.Pdims.map(d=>d.n).join('と');
 const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
 const sfmt=n=>(n>0?'+':n<0?'−':'±')+fmt(Math.abs(n));
 /* 重みは 1.5 / 1.0 / 0.5 のいずれかで常に正。総括は重みだけを動かし、論点の優劣は反転させない。 */
@@ -1113,7 +1155,7 @@ function calc(st,on){
   const W={ADV:1,DIS:1};
   rows.forEach(r=>{ if(r.w!==1&&r.dk!==0) W[r.dk>0?'ADV':'DIS']*=r.w; });
   const side=k=>{const p=probOf(st[k].cur),I=st[k].cur[IDIM.id];
-    return {k,P:p.v,Pdim:p.dim,Pall:p.all,I,S:p.v*I,W:W[k],F:p.v*I*W[k]}};
+    return {k,P:p.v,Pdims:p.dims,Pall:p.all,I,S:p.v*I,W:W[k],F:p.v*I*W[k]}};
   const A=side('ADV'),D=side('DIS');
   return {rows,A,D,diff:A.F-D.F};
 }
@@ -1161,7 +1203,7 @@ function judge(st){
   const on=!!st.CMP;
   const {rows,A,D,diff}=calc(st,on);
   const sens=[];['ADV','DIS'].forEach(k=>{for(const dim in st[k].holds) sens.push(holdSens(st,k,dim,on,st[k].holds[dim]))});
-  return {rows,A,D,diff,on,moved:rows.filter(r=>r.w!==1).length,
+  return {rows,A,D,diff,on,trace:st.TRACE,moved:rows.filter(r=>r.w!==1).length,
           sens:sens.length?sens:null,
           combo:sens.length>1?comboGrid(st,on,sens):null,
           side:diff>0?'肯定側':diff<0?'否定側':'引き分け',margin:Math.abs(diff)};
@@ -1319,14 +1361,46 @@ function drawScores(st,hits){
     const sp=probOf(s2.cur), sI=s2.cur[IDIM.id], sv=v?(k==='ADV'?v.A:v.D):null;
     const wt=(sv&&v.on&&sv.W!==1)?'<em>重み ×'+fmt(sv.W)+' → '+fmt(sv.F)+'</em>':'';
     return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>Strength '+fmt(sp.v*sI)+'</b><em>P '+sp.v+' × Impact '+sI+'</em>'+wt+'</span></div>'+rows+'</div>';
-  }).join('')+bridge(st,v,wm);
+  }).join('')+drawTrace(st,v)+bridge(st,v,wm);
   drawCmp(st);
+}
+/* Strength の推移。両側を同じ時間軸に置き、どの場面でどちらが前に出ていたかを読めるようにする。
+   値だけを並べず、動かした観点・段階を各行に添える（v22 仕様書 3.2）。 */
+function drawTrace(st,v){
+  const TR=st.TRACE; if(!TR||TR.length<2) return '';
+  const sideJa=a=>a==='ADV'?'肯定':'否定';
+  const num=(e,a,o)=>{
+    const c=e.side[a]; if(!c) return '<td class="na">—</td>';
+    const q=e.side[o], lead=(q&&c.F>q.F)?' ld':'';
+    /* 重みの行だけは増減ではなく倍率を出す。両側に同じ倍率が掛かったことを数字の列で見せるため、
+       ここで +5 と +16 を並べると、比が変わっていない事実と逆に読める。 */
+    const d=e.k==='総括'?'<i>(×'+c.W.toFixed(1)+')</i>'
+      :(c.d===null||c.d===0)?'':'<i>('+(c.d>0?'+':'−')+fmt(Math.abs(c.d))+')</i>';
+    return '<td class="'+(a==='ADV'?'a':'n')+lead+'">'+fmt(c.F)+d+'</td>';
+  };
+  const cz=e=>{
+    /* 倍率は値の列に出しているので、ここにはその倍率がどこから来たかを書く */
+    if(e.k==='総括') return v?v.rows.filter(r=>r.w!==1).map(r=>
+      r.d.n+'　'+(r.c>0?'肯定':'否定')+'が制し、'+(r.dk>0?'肯定':'否定')+'側の Strength に ×'+r.w.toFixed(1)).join('<br>')
+      :'総括の比較を重みに反映';
+    if(e.k==='立論') return sideJa(e.cause[0].arg)+'　立論を採点';
+    return e.cause.map(c=>sideJa(c.arg)+' '+DIMN[c.dim]+' '+c.from+'→'+c.to+
+      (c.r&&RULEN[c.r]?'　'+RULEN[c.r].split('：')[0]:'')+
+      (DIMAX[c.dim]==='evd'?'（計算外）':'')).join('<br>');
+  };
+  return '<div class="trc"><p class="th">Strength の推移　両側を同じ時間軸に並べる</p>'+
+    '<table><thead><tr><th>時刻</th><th>肯定</th><th>否定</th><th>動いたところ</th></tr></thead><tbody>'+
+    TR.map((e,i)=>'<tr'+(i===TR.length-1?' class="now"':'')+'><th>'+(e.k==='総括'?'総括後':e.t)+'</th>'+
+      num(e,'ADV','DIS')+num(e,'DIS','ADV')+'<td class="cz">'+cz(e)+'</td></tr>').join('')+
+    '</tbody></table>'+
+    '<p class="tn">色の付いた太字が、その時点で前に出ている側。網かけの行がいまの場面。'+
+    '資料の裏づけは Strength の計算に入らないので、値は動いても推移は動かない。</p></div>';
 }
 /* Strength（P × Impact）と重み反映後を並べ、判定の Strength 差がどこから来たかを繋ぐ。
    点数表を先に読んだ人が、解説の「Strength 差」で混同しないようにするための区画。 */
 function bridge(st,v,wm){
   if(!wm) return '';
-  const L=x=>(x.k==='ADV'?'肯定':'否定')+' '+x.P+'（'+x.Pdim.n+'）× '+x.I+' ＝ '+fmt(x.S);
+  const L=x=>(x.k==='ADV'?'肯定':'否定')+' '+x.P+'（'+pdn(x)+'）× '+x.I+' ＝ '+fmt(x.S);
   const moved=v.rows.filter(r=>r.w!==1)
     .map(r=>r.d.n+'（'+(r.c>0?'肯定':'否定')+'が制し'+r.w.toFixed(1)+'倍）').join('、');
   return '<div class="brg">'+
@@ -1411,8 +1485,8 @@ function vnum(v){
   const f=n=>fmt(Math.abs(n));
   const K=['〇','一','二','三','四','五'];
   return {side:v.side,margin:f(v.diff),movedN:K[v.moved]||String(v.moved),
-          affP:v.A.P,affPdim:v.A.Pdim.n,affI:v.A.I,affS:fmt(v.A.S),affW:fmt(v.A.W),affF:fmt(v.A.F),
-          negP:v.D.P,negPdim:v.D.Pdim.n,negI:v.D.I,negS:fmt(v.D.S),negW:fmt(v.D.W),negF:fmt(v.D.F),
+          affP:v.A.P,affPdim:pdn(v.A),affI:v.A.I,affS:fmt(v.A.S),affW:fmt(v.A.W),affF:fmt(v.A.F),
+          negP:v.D.P,negPdim:pdn(v.D),negI:v.D.I,negS:fmt(v.D.S),negW:fmt(v.D.W),negF:fmt(v.D.F),
           sideEn:v.diff>0?'Affirmative':v.diff<0?'Negative':'a tie',
           wnote:v.A.W===v.D.W
             ?(v.A.W===1?'どちらの Strength にも重みは掛からなかった'
@@ -1444,7 +1518,8 @@ const basisList=v=>'<ul class="wsrc">'+v.rows.map(x=>'<li><b>'+x.d.n+'</b>'+tlin
    整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
    どこで小数が生まれたのかが列を追うだけで分かる。 */
 /* どの観点が Probability を決めているか。min で捨てた側の値も併せて出す（仕様書 3.3・3.4） */
-const pLine=x=>(x.k==='ADV'?'肯定':'否定')+'側の Probability は'+x.Pdim.n+' '+x.P+' が決めている'+
+const pLine=x=>(x.k==='ADV'?'肯定':'否定')+'側の Probability は'+pdn(x)+' '+x.P+
+  (x.Pdims.length>1?' が並んで決めている':' が決めている')+
   (x.Pall.filter(y=>!y.min).length?'。'+x.Pall.filter(y=>!y.min).map(y=>y.d.n+' '+y.v).join('、')+' はそれより高い':'');
 function drawBrkHead(v){
   if(!v) return '';
