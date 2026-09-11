@@ -151,7 +151,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .dim .dwy{grid-column:1/5;text-align:right;font-size:9.5px;line-height:1.3;color:var(--ink-faint);margin-top:1px}
 @keyframes cmpflash{0%,100%{background:transparent}25%{background:#FFF0C4}}
 .cmpr.flash{animation:cmpflash 1.1s ease-out 2}
-/* 素点と重み反映後を並べ、判定の差がどこから来たかを繋ぐ */
+/* Strength と重み反映後を並べ、判定の差がどこから来たかを繋ぐ */
 .brg{margin-top:8px;padding:7px 9px;background:#EFF2F6;border-radius:3px}
 .brg .bl{font-size:11.5px;line-height:1.5;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .brg .bl span{display:inline-block;min-width:6.4em;font-size:10.5px;color:var(--ink-faint);letter-spacing:.04em}
@@ -171,6 +171,12 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .cell.s{background:repeating-linear-gradient(-45deg,var(--sc) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1px var(--sc)}
 .tagline{font-size:10.5px;letter-spacing:.04em;margin-left:6px}
 .tag-drop{color:var(--neg)} .tag-hold{color:var(--warn)}
+.tag-out{color:var(--ink-faint)} .tag-pmin{color:#2C6FA8}
+/* 軸の印は観点名の直下に置く。名前の途中で折り返させない */
+.dim .dn .tag-out,.dim .dn .tag-pmin{display:block;margin-left:0}
+/* 計算に入らない観点は、記録であることが見て分かるよう淡くする */
+.dim.out .dn,.dim.out .dv{color:var(--ink-faint)}
+.dim.out .band .cell.f{opacity:.45}
 .empty{font-size:12.5px;color:var(--ink-faint);padding:2px 0 6px}
 .key{display:flex;flex-wrap:wrap;gap:2px 10px;padding:7px 17px;border-bottom:1px solid var(--rule);font-size:10.5px;color:var(--ink-faint);flex:0 0 auto}
 .key i{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:4px;vertical-align:-1px}
@@ -208,6 +214,15 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .note[data-kind=premise]{border-left-color:#3F5F7A;background:#EEF3F7;padding-right:10px}
 .note[data-kind=premise] .k{color:#3F5F7A}
 .jbubble[data-kind=premise]{background:#3F5F7A}
+/* 判定モデルの説明枠。どの観点がどの軸に属し、何が計算に入らないかを常時出す */
+.model{margin:0 17px 2px;padding:6px 9px;background:#F3F1EA;border:1px solid #DED7C5;border-left:3px solid var(--warn);border-radius:3px;flex:0 0 auto}
+.model b{display:block;font-size:10.5px;letter-spacing:.05em;color:var(--warn);font-weight:600;margin-bottom:3px}
+.model ul{margin:0;padding:0;list-style:none;display:grid;gap:2px}
+.model li{font-size:10.5px;line-height:1.5;color:var(--ink-soft);display:grid;grid-template-columns:6.6em 1fr;gap:6px}
+.model li span{color:var(--ink);font-weight:600;letter-spacing:.02em}
+.model li i{font-style:normal}
+.model li em{font-style:normal;color:var(--ink);font-weight:600}
+.model p{margin:3px 0 0;font-size:10px;line-height:1.45;color:var(--ink-faint)}
 /* この試合の前提。右列の最上部に常に出し、初見でもプランのルールを見落とさないようにする */
 .premise{padding:8px 17px 9px;border-bottom:1px solid var(--rule);background:#EEF3F7;flex:0 0 auto}
 .premise b{display:block;font-size:11.5px;color:#3F5F7A;letter-spacing:.03em;font-weight:600;margin-bottom:3px}
@@ -232,6 +247,18 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .note p+p{margin-top:6px}
 .note .hits{margin-top:7px;display:flex;flex-wrap:wrap;gap:5px}
 .note .hits span{font-size:11px;padding:1px 7px;border-radius:9px;background:#fff;border:1px solid var(--rule-fine);color:var(--ink-soft);font-variant-numeric:tabular-nums}
+/* 判定の内訳表（軸ごとの値 → Strength → 重み）。3列で両側を並べる */
+.brk.jbrk tbody tr.sub th{padding-left:13px;font-size:10.5px;color:var(--ink-faint);font-weight:400}
+.brk.jbrk tbody tr.ax th,.brk.jbrk tbody tr.ax td{color:var(--ink);font-weight:600}
+.brk.jbrk tbody tr.ax th{border-top:1px solid var(--rule-fine)}
+.brk td.pm{color:#2C6FA8;font-weight:600}
+.note .brkh,.bubble .brkh{margin:8px 0 2px;font-size:10.5px;letter-spacing:.03em;color:var(--ink-faint);font-weight:600}
+.bubble .brkh{font-size:11.5px}
+/* 計算に入らない観点は、表の外に記録として置く */
+.offcalc{margin:7px 0 2px;padding:5px 8px;border:1px dashed var(--rule);border-radius:2px;font-size:10.5px;line-height:1.45;color:var(--ink-faint)}
+.offcalc b{display:block;letter-spacing:.03em;color:var(--ink-soft);font-weight:600;margin-bottom:2px}
+.offcalc p{margin:0 0 3px}.offcalc p:last-child{margin-bottom:0}
+.bubble .offcalc{font-size:11.5px}
 /* 判定の内訳表。判定 note の先頭に置く */
 .brk{width:100%;border-collapse:collapse;margin:3px 0 4px;font-size:11px;line-height:1.35;font-variant-numeric:tabular-nums}
 .brk th,.brk td{padding:1px 5px;border-bottom:1px solid var(--rule-fine);text-align:right;font-weight:400;color:var(--ink-soft)}
@@ -243,7 +270,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .brk .cmr{margin:0;font-size:10.5px;line-height:1.4;color:var(--ink-faint)}
 .brk tfoot .raw th,.brk tfoot .raw td{color:var(--ink-faint);border-bottom:0;border-top:1px solid var(--rule)}
 .brk tfoot .wsum th,.brk tfoot .wsum td{color:var(--ink);font-weight:700;border-bottom:0;font-size:12px}
-/* 結論と、素点差→重み反映後の対比。表が見切れても結論だけは必ず読めるよう先頭に置く */
+/* 結論と、Strength →重み反映後の対比。表が見切れても結論だけは必ず読めるよう先頭に置く */
 .note .brkv{margin:3px 0 1px;font-size:13px;font-weight:600;color:var(--ink);letter-spacing:.02em}
 .note .brkd{margin:0 0 3px;font-size:10.5px;line-height:1.4;color:var(--ink-faint);font-variant-numeric:tabular-nums}
 .note .brkd b{color:var(--ink);font-weight:600}
@@ -467,6 +494,16 @@ a.rb:hover{color:var(--aff)}
     <div class="key" id="key"></div>
     <details class="rubric" id="rubric"><summary>採点基準：10点尺度と、攻防で動く幅の段階表</summary><div id="rubricb"></div></details>
     <div class="scores" id="scores"><p class="empty">再生を始めると、提示された立論がここに追加されます。</p></div>
+    <div class="model">
+      <b>判定モデル</b>
+      <ul>
+        <li><span>Probability</span><i>現状との連続性・発生可能性・解決性・不可避性のうち<em>最小値</em>。証明されていない環があれば、そこで鎖は切れる</i></li>
+        <li><span>Strength</span><i>Probability × Impact（インパクト）</i></li>
+        <li><span>論点の最終値</span><i>Strength × 重み（1.5 / 1.0 / 0.5）</i></li>
+        <li><span>資料の裏づけ</span><i>記録として表示する。Strength の計算には入れない</i></li>
+      </ul>
+      <p>公式 Judge Sheet の Probability × Value／Impact ＝ Strength に合わせている。</p>
+    </div>
     <h2 class="panel-h hide" id="cmph">総括：観点ごとの比較<small>重み 1.5 / 1.0 / 0.5</small></h2>
     <div class="cmp hide" id="cmp"></div>
     <h2 class="panel-h">ジャッジの解説<small>時刻を押すとその発言へ移動</small></h2>
@@ -1239,6 +1276,8 @@ function showRubric(v){
 drawRubric();
 /* wmap を渡すと各行に総括の重みを出す。総括の判定前は null で従来どおり3列。 */
 function band(dims,cur,peak,foe,hits,key,wmap,wwhy,hist){
+  /* どの観点が Probability を決めているか（最小値）と、計算に入らない観点に印を付ける */
+  const pmin=probOf(cur).v;
   return dims.map(d=>{
     /* 推移。値が一度でも動いた観点にだけ出し、いつ・どの段階で動いたかを時刻付きで並べる */
     const hl=hist&&hist[d.id];
@@ -1255,9 +1294,12 @@ function band(dims,cur,peak,foe,hits,key,wmap,wwhy,hist){
     /* 2:42 で「暫定」、3:38 で「保留・要確認」に上がる */
     const hpv=hd&&hd.state==='provisional';
     const holdT=hd?'<span class="tagline '+(hpv?'tag-prov':'tag-hold')+'">'+(hpv?'暫定':'保留')+'・'+hd.t+'</span>':'';
-    const w=wmap?'<span class="dw'+(wmap[d.id]!==1?' up':'')+'">×'+wmap[d.id].toFixed(1)+'</span>':'';
-    const wy=(wwhy&&wwhy[d.id])?'<span class="dwy">'+wwhy[d.id]+'</span>':'';
-    return '<div class="dim'+(isHit?' hit':'')+'"><span class="dn">'+d.n+holdT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span>'+w+wy+hs+'</div>';
+    const axT=d.axis==='evd'?'<span class="tagline tag-out">計算外</span>'
+             :(d.axis==='P'&&v===pmin)?'<span class="tagline tag-pmin">P の最小値</span>':'';
+    /* 計算に入らない観点に重みを出すと「計算外」と矛盾して読める。倍率はここでは出さない */
+    const w=(wmap&&d.axis!=='evd')?'<span class="dw'+(wmap[d.id]!==1?' up':'')+'">×'+wmap[d.id].toFixed(1)+'</span>':'';
+    const wy=(wwhy&&wwhy[d.id]&&d.axis!=='evd')?'<span class="dwy">'+wwhy[d.id]+'</span>':'';
+    return '<div class="dim'+(isHit?' hit':'')+(d.axis==='evd'?' out':'')+'"><span class="dn">'+d.n+holdT+axT+'</span><span class="band">'+cells+'</span><span class="dv">'+v+'</span>'+w+wy+hs+'</div>';
   }).join('');
 }
 function drawScores(st,hits){
@@ -1398,7 +1440,6 @@ function drawTodo(v){
 }
 /* 重みの根拠となる発言。判定の「根拠」と、総括の役割分離の両方で使う */
 const basisList=v=>'<ul class="wsrc">'+v.rows.map(x=>'<li><b>'+x.d.n+'</b>'+tlink(x.src)+'</li>').join('')+'</ul>';
-/* 観点ごとの d_k・w_k・積と、素点差の合計／重み反映後の合計を並べる */
 /* 判定の結論と、確認が必要な項目の一覧。
    整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
    どこで小数が生まれたのかが列を追うだけで分かる。 */
@@ -1414,20 +1455,41 @@ function drawBrkHead(v){
     '（<b>'+s1(v.diff)+'</b>／'+v.side+'）'+(flip?'　総括の比較で向きが変わった。':'')+'</p>'+
     '<p class="brkd">'+pLine(v.A)+'。'+pLine(v.D)+'。</p>'+drawTodo(v);
 }
-/* 判定の内訳表。観点ごとの d_k・w_k・積と、素点差／重み反映後の合計を並べる */
+/* 判定の内訳表。軸ごとの値 → Strength の計算 → 重みの適用の順に、両側を並べて出す。
+   結論は drawBrkHead が先頭に置くので、表が見切れても勝敗だけは読める。 */
 function drawBrkTable(v,prose=true){
   if(!v) return '';
   const ld=n=>n===0?'互角':(n>0?'肯定':'否定')+'+'+Math.abs(n);
   /* 重みは論点単位で Strength に掛かる。どちらの Strength に掛かったのかを列に出す */
   const wc=r=>r.w===1?(r.arena?'×1.0':'1.0 固定'):'×'+r.w.toFixed(1)+'　'+(r.dk>0?'肯定':'否定')+'側';
-  return '<table class="brk">'+
+  /* Probability に属する観点は3つとも出し、最小値に印を付ける。どの環が効いているかを表で示す */
+  const pc=(x,d)=>{const y=x.Pall.find(z=>z.d===d);return '<td'+(y.min?' class="pm"':'')+'>'+y.v+(y.min?' ●':'')+'</td>'};
+  const axis='<table class="brk jbrk">'+
+    '<thead><tr><th>判定軸</th><th>肯定</th><th>否定</th></tr></thead><tbody>'+
+    PDIMS.map(d=>'<tr class="sub"><th>'+d.n+'</th>'+pc(v.A,d)+pc(v.D,d)+'</tr>').join('')+
+    '<tr class="ax"><th>Probability（●の最小値）</th><td>'+v.A.P+'</td><td>'+v.D.P+'</td></tr>'+
+    '<tr class="ax"><th>Impact（'+IDIM.n+'）</th><td>'+v.A.I+'</td><td>'+v.D.I+'</td></tr>'+
+    '</tbody><tfoot>'+
+    '<tr class="raw"><th>Strength ＝ Probability × Impact</th><td>'+v.A.P+' × '+v.A.I+' ＝ '+fmt(v.A.S)+
+      '</td><td>'+v.D.P+' × '+v.D.I+' ＝ '+fmt(v.D.S)+'</td></tr>'+
+    '<tr class="raw"><th>重み</th><td>×'+v.A.W.toFixed(1)+'</td><td>×'+v.D.W.toFixed(1)+'</td></tr>'+
+    '<tr class="wsum"><th>重み付き Strength</th><td>'+fmt(v.A.F)+'</td><td>'+fmt(v.D.F)+'</td></tr>'+
+    '</tfoot></table>';
+  /* 重みがその値になった理由。計算に入る観点だけを並べる */
+  const wtbl='<p class="brkh">重みの決まり方　どの観点で誰が制したか</p><table class="brk">'+
     '<thead><tr><th>観点</th><th>軸</th><th>総括前の差</th><th>重み</th></tr></thead><tbody>'+
-    v.rows.map(r=>
+    v.rows.filter(r=>r.d.axis!=='evd').map(r=>
       '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+AXN[r.d.axis]+'</td><td>'+ld(r.dk)+
         '</td><td>'+wc(r)+'</td></tr>'+
       (prose?'<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>':'')).join('')+
-    '</tbody><tfoot><tr class="raw"><th colspan="2">Strength（P × Impact）</th><td>肯定 '+fmt(v.A.S)+'</td><td>否定 '+fmt(v.D.S)+'</td></tr>'+
-    '<tr class="wsum"><th colspan="2">重み反映後</th><td>肯定 '+fmt(v.A.F)+'</td><td>否定 '+fmt(v.D.F)+'</td></tr></tfoot></table>'+
+    '</tbody></table>';
+  /* 資料の裏づけは表の外に別掲する。値の動きは記録として残し、Strength には入れない */
+  const er=v.rows.find(r=>r.d.axis==='evd');
+  const off=er?'<div class="offcalc"><b>記録用・計算外　'+er.d.n+'</b>'+
+    '<p>総括前の差は'+ld(er.dk)+'。攻防による値の変動は点数表に残すが、Strength の計算には入れない。'+
+    '資料の裏づけは独立した判定軸ではなく、他の観点を支える要素だからである。射程をめぐる指摘は発生可能性の土俵で扱う。</p>'+
+    (prose?'<p class="cmr">'+er.why+'</p>':'')+'</div>':'';
+  return axis+wtbl+off+
     (VERIFY.length?'<p class="vfn">'+VERIFY.map(x=>tlink(x.t)+'　'+x.target+'：'+x.status).join('／')+
       '。エンジンは資料の読み方の正誤を判定していない。人が確認しても値が動かないため、保留（要確認）とは別に扱う。</p>':'')+
     ((v.combo&&v.combo.length)?'<p class="tolink"><a class="jl" href="#" data-j="combo" data-k="0">保留'+
