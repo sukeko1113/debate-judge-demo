@@ -559,7 +559,12 @@ const STAGES=[
  {n:'⑪ 肯定 総括',s:'aff'},{n:'⑫ 否定 総括',s:'neg'},{n:'総括比較',s:'none'},{n:'判定',s:'none'}
 ];
 const ARGS={ADV:{name:'メリット：労働者の健康改善',side:'aff'},DIS:{name:'デメリット：中小企業の生産量低下',side:'neg'}};
-const DIMS=[{id:'inh',n:'現状との連続性',c:'#2F7A6E'},{id:'prob',n:'発生可能性',c:'#2C6FA8'},{id:'imp',n:'インパクト',c:'#C2762A'},{id:'sol',n:'解決性・不可避性',c:'#6B4E8C'},{id:'evd',n:'資料の裏づけ',c:'#5A7A3E'}];
+/* axis は公式 Judge Sheet の判定軸。P は Probability（現状との連続性・発生可能性・解決性）、
+   I は Impact。資料の裏づけは独立軸ではなく他の観点を支える要素なので、記録として表示だけ残し、
+   Strength の計算には入れない（規定3.1：資料を引用したかどうかで勝敗は決まらない）。 */
+const DIMS=[{id:'inh',n:'現状との連続性',c:'#2F7A6E',axis:'P'},{id:'prob',n:'発生可能性',c:'#2C6FA8',axis:'P'},{id:'imp',n:'インパクト',c:'#C2762A',axis:'I'},{id:'sol',n:'解決性・不可避性',c:'#6B4E8C',axis:'P'},{id:'evd',n:'資料の裏づけ',c:'#5A7A3E',axis:'evd'}];
+const PDIMS=DIMS.filter(d=>d.axis==='P'), IDIM=DIMS.find(d=>d.axis==='I');
+const AXN={P:'Probability',I:'Impact',evd:'計算外'};
 /* 総括は独立した得点を持たず、観点ごとの「比較の勝敗」として重みに反映する。
    c は +1 肯定が制した / -1 否定が制した / 0 決着なし。
    arena=false の観点は比較の土俵にせず、重みを常に 1.0 に固定する。 */
@@ -630,7 +635,7 @@ L(0,'J','—',`<b>Before we begin.</b> Watch how one unanswered attack decides t
  {kind:'note',k:'見どころ',
   say:'このデモでは、答え忘れた反論が勝敗にどう響くかをご覧ください。肯定側がディフェンスで応答しなかったインパクトへの攻撃が、そのまま判定まで効きます。',
   body:['見るべき場面は三つ。2:18 の否定アタック、3:32 の肯定ディフェンスでの落とし、そして総括比較でインパクトの重みが1.5倍になるところである。',
-        '判定に着いたら、左の吹き出しで素点から重み反映後までの計算が読める。右列には観点ごとの根拠と、各発言の時点の解説が残る。',
+        '判定に着いたら、左の吹き出しで Probability × Impact から重み反映後までの計算が読める。右列には観点ごとの根拠と、各発言の時点の解説が残る。',
         '解説の中の時刻はその発言へのリンクになっている。点数がどの基準で動いたかは、右列の「採点基準」と、各観点の「推移」の行で追える。'],
   src:'該当：2:18 ／ 3:32 ／ 総括比較'}),
 L(0,'J','—',`<b>Before the first speech: how plans work under HEnDA.</b> The affirmative opens with a concrete plan, within the pre-published definition of the resolution, and the negative argues against that plan. The affirmative may not narrow the resolution at will: an advantage from a plan outside the definition does not count. In this demo, the limit to firms of three hundred or more employees is treated as allowed by the definition.`,
@@ -831,23 +836,25 @@ L(16,'NS','4:24',`That is our summary.`,`以上で総括を終わります。`,
 /* ---------- 総括比較 ---------- */
 L(17,'J','—',`<b>Weighing the summaries.</b> Each issue is checked for whether the summaries settled a comparison on it.`,`<b>総括の比較を判定します。</b>観点ごとに、総括で比較の決着がついたかどうかを見て、重みを決めます。`,
  {kind:'sumcmp',k:'総括比較 — 観点ごとに重みを決める',
-  say:'観点ごとに重みを決めます。重みは点数ではなく、差に掛ける倍率です。差が付いている側が伸びます。インパクトは否定側が制しました。否定側は攻撃で、1万人という数字は脳血管疾患・心疾患による死亡の全体であって、労働時間が原因の死者数ではないと指摘しました。肯定側は防御で応答せず、総括でも価値を言い直すにとどまり、数え方には触れませんでした。否定側に差が付いた観点で否定側が制したので、1.5倍です。解決性・不可避性は肯定側が制しました。肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないという回復可能性の軸を示し、両者をその軸に載せました。否定側はその軸に乗りませんでした。肯定側に差が付いた観点で肯定側が制したので、1.5倍です。発生可能性は双方が自分の攻撃を言い直しただけで、決着なし。現状との連続性と資料の裏づけは総括で比較の軸にならず、重みは1.0のままです。素点の差1が、重み反映後は3.5になります。',
+  say:'観点ごとに重みを決めます。重みは点数ではなく、その観点で優位な側の Strength に掛ける倍率です。インパクトは否定側が制しました。否定側は攻撃で、1万人という数字は脳血管疾患・心疾患による死亡の全体であって、労働時間が原因の死者数ではないと指摘しました。肯定側は防御で応答せず、総括でも価値を言い直すにとどまり、数え方には触れませんでした。否定側に差が付いた観点で否定側が制したので、1.5倍です。解決性・不可避性は肯定側が制しました。肯定側は総括で、生産の落ち込みは取り戻せるが命は取り戻せないという回復可能性の軸を示し、両者をその軸に載せました。否定側はその軸に乗りませんでした。肯定側に差が付いた観点で肯定側が制したので、1.5倍です。発生可能性は双方が自分の攻撃を言い直しただけで、決着なし。現状との連続性は総括で比較の軸にならず、重みは1.0のままです。資料の裏づけは記録として残しますが、Strength の計算には入れません。肯定側の Strength {affS} は {affF}、否定側の Strength {negS} は {negF} になります。',
   body:['総括には独立した点数を与えない。総括が決めるのは、観点ごとの重みだけである。',
         'まず前提を確認する。相手が攻撃しなければ、立論で付けた点はそのまま残る。現状との連続性がその例で、両側とも試合を通じて一度も動いていない。攻撃も防御もなく、総括でも比較の軸にならなかったため、立論で付いた差がそのまま最後まで残る。点が動くのは、誰かがそこを攻撃したか、総括でそこを比較の土俵にしたときだけである。',
         '重みは三段階で決める。自分が優位な観点で総括の比較を制せば1.5倍、決着がつかなければ1.0倍、劣勢な観点で相手に制し返されれば0.5倍。いずれも正の数であるため、重みを掛けても観点ごとの勝ち負けは入れ替わらない。総括が動かせるのは、どの観点をどれだけ効かせるかだけである。',
-        '注意すべきは、重みが点数ではなく差に掛ける倍率だということである。差はすでにどちらか一方に付いているので、1.5倍すればその側に有利な方向へ大きくなる。インパクトは否定側に差が付いているので否定側が伸び、解決性・不可避性は肯定側に差が付いているので肯定側が伸びる。同じ1.5倍でも、伸びる側は観点ごとに違う。勝った側に点を足しているのではない。',
+        '注意すべきは、重みが点数ではなく、その観点で優位な側の Strength に掛ける倍率だということである。差はすでにどちらか一方に付いているので、1.5倍が掛かるのはその側の論点である。インパクトは否定側に差が付いているので否定側の Strength に、解決性・不可避性は肯定側に差が付いているので肯定側の Strength に掛かる。同じ1.5倍でも、掛かる先は観点ごとに違う。勝った側に点を足しているのではない。',
+        '判定そのものは、観点を足し合わせるのではなく、公式 Judge Sheet と同じ形で組み立てる。Probability（現状との連続性・発生可能性・解決性の最小値）に Impact を掛けて Strength を出し、そこに重みを掛ける。資料の裏づけは記録として残すが、この計算には入れない。',
         '観点ごとに見ていく。'],
   src:'対応する発言：3:58 ／ 4:06 ／ 4:14'}),
 
 /* ---------- 判定 ---------- */
-L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Raw score {aff} / {neg} ({raw}-point gap) → after weighting {affW} / {negW}. Two items require human confirmation.`,`<b>暫定判定：{side}、{margin}点差。</b>素点 肯定 {aff} 対 否定 {neg}（{raw}点差）→ 重み反映後 肯定 {affW} 対 否定 {negW}。確定の前に、人による確認が必要な項目が2件あります。`,
+L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} in Strength.</b> Strength {affS} / {negS} (Probability × Impact) → after weighting {affF} / {negF}. Two items require human confirmation.`,`<b>暫定判定：{side}、Strength 差 {margin}。</b>Strength 肯定 {affS} 対 否定 {negS}（Probability × Impact）→ 重み反映後 肯定 {affF} 対 否定 {negF}。確定の前に、人による確認が必要な項目が2件あります。`,
  {kind:'verdict',k:'判定と、確定までの手続き',
   /* runs / threshold はデモ用の仮値。実測ではない（9章の持ち越し）。
      範囲（最大−最小）が threshold 以上の観点を保留にする、という設計を示すための値。 */
   hold:{arg:'DIS',dim:'imp',t:'採点の揺れ',state:'hold',demo:true,runs:[8,9,7,8,8],threshold:2},
-  say:'暫定判定は{side}、{margin}点差です。素点は{raw}点差ですが、総括で{movedN}つの観点に決着がつき、重みが動きました。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は資料の同一性です。肯定側が読み上げた報告と否定側が引用した報告が同じものか、否定側が機関名を示していないため照合できていません。ただし同一でなくても、判定の向きは変わりません。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
-  judg:'重み反映後の差で{side}、{margin}点差。総括で{movedN}つの観点に決着がつき、その重みが1.5倍になったことで、素点の{raw}点差が開いた。ただし確定の前に、人が確認すべき項目が残っている。',
-  body:['勝敗を分けたのはインパクトである。肯定側が防御で応答して4を守り、総括でも同じ土俵に立っていれば、この観点の重みは動かず、結論は逆転していた。',
+  say:'暫定判定は{side}、Strength 差 {margin}です。肯定側は Probability {affP} に Impact {affI} を掛けて Strength {affS}、否定側は Probability {negP} に Impact {negI} を掛けて Strength {negS} です。総括で{movedN}つの観点に決着がつき、重みを掛けると肯定 {affF} 対 否定 {negF} になります。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は資料の同一性です。肯定側が読み上げた報告と否定側が引用した報告が同じものか、否定側が機関名を示していないため照合できていません。ただし同一でなくても、判定の向きは変わりません。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
+  judg:'重み反映後の値で{side}、Strength 差 {margin}。総括で{movedN}つの観点に決着がついたが、{wnote}。ただし確定の前に、人が確認すべき項目が残っている。',
+  body:['勝敗を分けたのはインパクトである。積では Impact は Probability に掛かる係数なので、そこが落ちると他の観点の値では埋められない。肯定側のインパクトは 3:32 の落としで {affI} になり、Probability {affP} と掛け合わせた Strength は {affS} にとどまった。否定側は Probability {negP} に Impact {negI} が乗って {negS} である。',
+        '和モデル（v20）では、肯定側が防御で応答して4を守り、総括でも同じ土俵に立っていれば結論は逆転していた。積モデルではその条件でも否定側が残る。2:18 の攻撃（数値の側の崩壊、到達点4）が成立した時点で、防御で戻せる上限は4であり、積ではその上限では足りないためである。勝敗を決めた場面は、3:32 の落としから 2:18 の攻撃そのものへ移る。',
         'なお肯定側のプラン（従業員300人以上）は事前の論題定義の範囲内という前提で進めたので、論題適合性による保留はない。対象が限られることによる規模の評価は、立論の採点に織り込み済みである。',
         '〔このエンジンの立場〕',
         'エンジンは判定を出す。人間ジャッジとの勝敗一致率を指標として設計しており、結論を避ける仕組みではない。',
@@ -856,7 +863,7 @@ L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} points.</b> Raw sc
   open:['資料の同一性について。肯定側は 2:42 で報告書名・発行機関・参照箇所を挙げて「調査対象は従業員10人未満」と読み上げ、否定側は 3:38 で「最小規模の企業に限られたものではない」と否定した。否定側が 1:04 で機関名も報告書名も示していないため、両者が同じ報告を指しているかをエンジンは照合できない。値は人が確認するまで暫定である。',
         '採点の揺れについて。まず紛らわしい点を分けておく。揺れているのは試合中の推移ではない。肯定側がこの観点を一度も攻撃していないので、8点は立論で付いてから最後まで一度も動いていない。揺れているのは、最初にいくつを付けるかという採点そのものである。',
         'この8点は「雇用の7割」という数字と、「傷つくのは肯定側が守ろうとする相手と同じ低所得労働者だ」という価値づけの二つで支えられている。後者に数字はなく、肯定側はこの価値づけを試合を通じて一度も攻撃していない。攻撃されていれば、その反論の内容が採点を固定する手がかりになる。攻撃されないまま残った価値の主張には、判断を固定する材料がどこにもない。だから採点のたびに値が動く。',
-        '試合中に点が動かないことと、最初の値が一つに定まることは別である。前者は相手が攻撃しなかったという記録の問題で、後者はエンジンが何点と読むかという採点の問題である。この観点は前者としては安定していて、後者としては不安定だった。そして{margin}点差の勝敗が、この揺れている観点に乗っている。だから人の確認に回す。',
+        '試合中に点が動かないことと、最初の値が一つに定まることは別である。前者は相手が攻撃しなかったという記録の問題で、後者はエンジンが何点と読むかという採点の問題である。この観点は前者としては安定していて、後者としては不安定だった。そして Strength 差 {margin} の勝敗が、この揺れている観点に乗っている。否定側の Strength は Probability {negP} にこの8点を掛けたものなので、揺れはそのまま結論の幅になる。だから人の確認に回す。',
         'これらが片づけば、判定は確定できる。いま確定できないのはこの試合の条件によるものであって、エンジンが常に結論を出せないという意味ではない。']})
 
 ];
@@ -1045,28 +1052,39 @@ function state(upto){
   }
   return st;
 }
-const total=s=>DIMS.reduce((a,d)=>a+s.cur[d.id],0);
-/* 重みを掛けた側ごとの合計。両者の差は Σ(d_k×w_k) に一致する */
-const wtotal=(s,wm)=>DIMS.reduce((a,d)=>a+s.cur[d.id]*(wm?wm[d.id]:1),0);
+/* Probability は属する3観点の最小値。規定2.1.1.3 は三論点を並列に課しており、
+   証明されていない環があればそこで鎖は切れる。捨てた側の値も all に残す。
+   防御で回復すれば、Probability を決める環は入れ替わる。 */
+function probOf(cur){
+  const lo=PDIMS.reduce((a,d)=>cur[d.id]<cur[a.id]?d:a);
+  return {v:cur[lo.id],dim:lo,all:PDIMS.map(d=>({d,v:cur[d.id],min:cur[d.id]===cur[lo.id]}))};
+}
 const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
 const sfmt=n=>(n>0?'+':n<0?'−':'±')+fmt(Math.abs(n));
-/* 重みは 1.5 / 1.0 / 0.5 のいずれかで常に正。したがって d_k×w_k は d_k の符号を保つ。
-   総括は重みだけを動かし、個々の観点の勝敗は反転させない。 */
+/* 重みは 1.5 / 1.0 / 0.5 のいずれかで常に正。総括は重みだけを動かし、論点の優劣は反転させない。 */
 const cmpW=(dk,c,arena)=>(!arena||c===0||dk===0)?1:(Math.sign(c)===Math.sign(dk)?1.5:.5);
-/* 総括の比較が未確定（st.CMP が立つ前）は全観点 w=1.0。どのステージで呼んでも安全で、
-   そのとき wsum は素点差 raw に一致する。立論が出そろう前は null を返す。 */
+/* 公式 Judge Sheet の判定軸にそろえた集計。
+     Probability（P観点の最小値） × Impact ＝ Strength、Strength × 重み ＝ その論点の最終値。
+   重みは論点単位で Strength に掛ける。積なので P 側に掛けても Impact 側に掛けても効果は同じ。
+   掛ける先は、その観点で差が付いている側。1.5 は優位側を伸ばし、0.5 は優位側を圧縮する。
+   総括の比較が未確定（st.CMP が立つ前）は全観点 w=1.0 で、W はどちらも 1.0 になる。 */
 function calc(st,on){
   const rows=DIMS.map(d=>{
     const dk=st.ADV.cur[d.id]-st.DIS.cur[d.id],m=SUMCMP[d.id],w=on?cmpW(dk,m.c,m.arena):1;
-    return {d,dk,w,prod:dk*w,c:on?m.c:0,arena:m.arena,why:m.why,short:m.short,src:m.src};
+    return {d,dk,w,c:on?m.c:0,arena:m.arena,why:m.why,short:m.short,src:m.src};
   });
-  return {rows,raw:rows.reduce((a,r)=>a+r.dk,0),wsum:rows.reduce((a,r)=>a+r.prod,0)};
+  const W={ADV:1,DIS:1};
+  rows.forEach(r=>{ if(r.w!==1&&r.dk!==0) W[r.dk>0?'ADV':'DIS']*=r.w; });
+  const side=k=>{const p=probOf(st[k].cur),I=st[k].cur[IDIM.id];
+    return {k,P:p.v,Pdim:p.dim,Pall:p.all,I,S:p.v*I,W:W[k],F:p.v*I*W[k]}};
+  const A=side('ADV'),D=side('DIS');
+  return {rows,A,D,diff:A.F-D.F};
 }
 /* 保留の観点の感度。暫定値を1点ずつ動かして最終差を計算し直し、判定の向きが変わる境界を求める。
-   重みは差の符号で決まるので、値を動かすと重みも一緒に変わりうる。その分も含めて計算する。 */
+   値を動かすと、重みも Probability を決めている環も一緒に変わりうる。その分も含めて計算する。 */
 function holdSens(st,arg,dim,on,h){
   const cur=st[arg].cur[dim];
-  const at=v=>calc({...st,[arg]:{...st[arg],cur:{...st[arg].cur,[dim]:v}}},on).wsum;
+  const at=v=>calc({...st,[arg]:{...st[arg],cur:{...st[arg].cur,[dim]:v}}},on).diff;
   const now=Math.sign(at(cur));
   if(h&&h.alts){
     /* 代替値が決まっている保留（資料同一性など）は、その候補ごとに最終差を出す */
@@ -1097,23 +1115,19 @@ function comboGrid(st,on,sens){
     const R=sens[i],C=sens[j];
     const rows=holdAxis(st,R.arg,R.dim,on,R.h),cols=holdAxis(st,C.arg,C.dim,on,C.h);
     out.push({R,C,rows,cols,cells:rows.map(r=>cols.map(c=>
-      calc(setDim(setDim(st,R.arg,R.dim,r.v),C.arg,C.dim,c.v),on).wsum))});
+      calc(setDim(setDim(st,R.arg,R.dim,r.v),C.arg,C.dim,c.v),on).diff))});
   }
   return out;
 }
 function judge(st){
   if(!st.ADV||!st.DIS) return null;
   const on=!!st.CMP;
-  const {rows,raw,wsum}=calc(st,on);
-  /* 重みは側ごとの合計に分配できる（(a−n)×w = a×w − n×w）。wa−wn は wsum に一致する */
-  const wa=rows.reduce((a,r)=>a+st.ADV.cur[r.d.id]*r.w,0),
-        wn=rows.reduce((a,r)=>a+st.DIS.cur[r.d.id]*r.w,0);
+  const {rows,A,D,diff}=calc(st,on);
   const sens=[];['ADV','DIS'].forEach(k=>{for(const dim in st[k].holds) sens.push(holdSens(st,k,dim,on,st[k].holds[dim]))});
-  return {rows,raw,wsum,on,wa,wn,moved:rows.filter(r=>r.w!==1).length,
-          aff:total(st.ADV),neg:total(st.DIS),
+  return {rows,A,D,diff,on,moved:rows.filter(r=>r.w!==1).length,
           sens:sens.length?sens:null,
           combo:sens.length>1?comboGrid(st,on,sens):null,
-          side:wsum>0?'肯定側':wsum<0?'否定側':'引き分け',margin:Math.abs(wsum)};
+          side:diff>0?'肯定側':diff<0?'否定側':'引き分け',margin:Math.abs(diff)};
 }
 /* 単独の感度は、他方の保留を暫定値に固定した断面である。その固定条件をデータから文にする。
    側名も値も持たず、保留が増えれば条件も自動で増える。 */
@@ -1164,7 +1178,7 @@ function drawCombo(v){
   const nm=s=>(ARGS[s.arg].side==='aff'?'肯定':'否定')+'側「'+DIMN[s.dim]+'」';
   /* 左上のセルは狭いので、側と観点を中黒でつないだ短い形にし、行と列を別の行に置く */
   const snm=s=>(ARGS[s.arg].side==='aff'?'肯定':'否定')+'・'+DIMN[s.dim];
-  const cell=w=>w===0?'同点':(w>0?'肯定':'否定')+' '+fmt(Math.abs(w))+'点差';
+  const cell=w=>w===0?'同点':(w>0?'肯定':'否定')+' '+fmt(Math.abs(w));
   return v.combo.map(g=>{
     /* 左上のセルが両方とも暫定値、つまり現在の判定。ここからの符号の変化を見る */
     const sgn=Math.sign(g.cells[0][0]);
@@ -1176,7 +1190,7 @@ function drawCombo(v){
         return '<td'+(k?' class="'+k+'"':'')+'>'+cell(w)+'</td>';
       }).join('')+'</tr>').join('');
     return '<div class="cgrid"><p class="ch">保留の組合せ感度　'+nm(g.R)+'と'+nm(g.C)+
-      'を同時に動かした場合の最終差</p><div class="cw"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+      'を同時に動かした場合の最終差（Strength 差）</p><div class="cw"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
       '<p class="cs">上の単独の感度は、この表の一断面である。'+nm(g.R)+'の感度は'+nm(g.C)+'＝'+g.cols[0].v+
       'の列を縦に読んだもの、'+nm(g.C)+'の感度は'+nm(g.R)+'＝'+g.rows[0].v+
       'の行を横に読んだもので、別々の計算をしているのではない。2件を同時に動かすと、単独では現れない同点や、逆転しない組合せが出る。'+
@@ -1258,23 +1272,26 @@ function drawScores(st,hits){
     const s2=st[k],m=ARGS[k],foe=m.side==='aff'?'#8C3A46':'#1D4E6B';
     let tag=s2.drop?'<span class="tagline tag-drop">落としあり</span>':'';
     const rows=band(DIMS,s2.cur,s2.peak,foe,{arg:hits&&hits.arg,dims:(hits&&hits.dims)||[],holds:s2.holds},k,wm,wy,s2.hist);
-    const wt=wm?'<em>重み反映後 '+fmt(wtotal(s2,wm))+'</em>':'';
-    return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>'+total(s2)+'</b> / 50'+wt+'</span></div>'+rows+'</div>';
+    /* 50点満点の素点合計は、資料の裏づけを計算から外した時点で意味を持たない。
+       代わりに Strength の組み立て（P × Impact）をそのまま出す。各観点の値と推移は行に残る。 */
+    const sp=probOf(s2.cur), sI=s2.cur[IDIM.id], sv=v?(k==='ADV'?v.A:v.D):null;
+    const wt=(sv&&v.on&&sv.W!==1)?'<em>重み ×'+fmt(sv.W)+' → '+fmt(sv.F)+'</em>':'';
+    return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>Strength '+fmt(sp.v*sI)+'</b><em>P '+sp.v+' × Impact '+sI+'</em>'+wt+'</span></div>'+rows+'</div>';
   }).join('')+bridge(st,v,wm);
   drawCmp(st);
 }
-/* 素点（26対27）と重み反映後（30.5対34）を並べ、判定の 3.5 がどこから来たかを繋ぐ。
-   点数表を先に読んだ人が、解説の「3.5点差」で混同しないようにするための区画。 */
+/* Strength（P × Impact）と重み反映後を並べ、判定の Strength 差がどこから来たかを繋ぐ。
+   点数表を先に読んだ人が、解説の「Strength 差」で混同しないようにするための区画。 */
 function bridge(st,v,wm){
   if(!wm) return '';
-  const a=wtotal(st.ADV,wm), n=wtotal(st.DIS,wm);
+  const L=x=>(x.k==='ADV'?'肯定':'否定')+' '+x.P+'（'+x.Pdim.n+'）× '+x.I+' ＝ '+fmt(x.S);
   const moved=v.rows.filter(r=>r.w!==1)
     .map(r=>r.d.n+'（'+(r.c>0?'肯定':'否定')+'が制し'+r.w.toFixed(1)+'倍）').join('、');
   return '<div class="brg">'+
-    '<div class="bl"><span>素点</span>肯定 '+total(st.ADV)+' − 否定 '+total(st.DIS)+' ＝ <b>'+sfmt(v.raw)+'</b></div>'+
-    '<div class="bl on"><span>重み反映後</span>肯定 '+fmt(a)+' − 否定 '+fmt(n)+' ＝ <b>'+sfmt(v.wsum)+'</b>　'+v.side+'</div>'+
-    '<p>総括は点数を持たず、観点ごとの重みとして効く。重みが動いたのは'+moved+
-    '。判定はこの重み反映後の差で決まる。</p>'+
+    '<div class="bl"><span>Strength</span>'+L(v.A)+'　／　'+L(v.D)+'</div>'+
+    '<div class="bl on"><span>重み反映後</span>肯定 '+fmt(v.A.F)+' 対 否定 '+fmt(v.D.F)+' ＝ <b>'+sfmt(v.diff)+'</b>　'+v.side+'</div>'+
+    '<p>総括は点数を持たず、観点ごとに決めた重みを、その観点で優位な側の Strength に掛ける。重みが動いたのは'+moved+
+    '。判定はこの重み反映後の値で決まる。</p>'+
     (v.sens?v.sens.map(s=>'<p class="bs">保留の'+(ARGS[s.arg].side==='aff'?'肯定':'否定')+'側「'+DIMN[s.dim]+'」'+s.cur+'（'+s.h.t+'）は暫定値のまま含めている。'+
       fixCond(v.sens,s)+
       (s.mode==='alts'?(s.flips.length?'代替値では判定が逆転しうる。':'代替値でも判定の向きは変わらない。')
@@ -1288,8 +1305,8 @@ const CMPLABEL={aff:['●','肯定が制した'],neg:['●','否定が制した'
 const WRULE=(w,c)=>w==='up'?'優位の'+(c>0?'肯定':'否定')+'が制した'
                   :w==='down'?'劣勢の'+(c>0?'肯定':'否定')+'が制した':'';
 /* 重みの条件表。1.5 と 0.5 の主語を、どちらが制したかで一意に定める */
-const WTBL=[['立論の差で優位な側が制した','1.5','自分が優位な土俵で比較を示した。差を広げる'],
-            ['立論の差で劣位な側が制した','0.5','相手が優位な土俵で比較を示し返した。差を削る'],
+const WTBL=[['立論の差で優位な側が制した','1.5','自分が優位な土俵で比較を示した。優位側の Strength を1.5倍する'],
+            ['立論の差で劣位な側が制した','0.5','相手が優位な土俵で比較を示し返した。優位側の Strength を半分にする'],
             ['決着なし','1.0','動かさない'],
             ['土俵にしない観点','1.0 固定','比較の対象外']];
 const wCond=()=>'<table class="wtbl"><thead><tr><th>総括で比較を制した側</th><th>重み</th><th>意味</th></tr></thead><tbody>'+
@@ -1299,9 +1316,9 @@ function wLead(v){ return v.rows.filter(r=>r.arena&&r.c!==0).sort((a,b)=>Math.ab
 function wHypo(v){
   if(v.rows.some(r=>r.w===0.5)) return '';
   const r=wLead(v); if(!r) return '';
-  const lose=r.c>0?'否定':'肯定', up=r.dk>0?'肯定':'否定', w2=cmpW(r.dk,-r.c,r.arena);
+  const lose=r.c>0?'否定':'肯定', up=r.dk>0?'肯定':'否定', w2=cmpW(r.dk,-r.c,r.arena), S=r.dk>0?v.A:v.D;
   return '<p class="whyp">この試合では 0.5 の観点はない。仮に'+lose+'側が総括で'+r.d.n+'の比較を制していれば、重みは '+
-    w2.toFixed(1)+' になり、'+up+'の'+Math.abs(r.dk)+'点優位が '+fmt(Math.abs(r.dk*w2))+' 点優位に縮んでいた。</p>';
+    w2.toFixed(1)+' になり、'+up+'側の Strength '+fmt(S.S)+' は '+fmt(S.S*w2)+' に圧縮されていた。</p>';
 }
 /* 攻防の点数と重みは別のものを測っている。同じ未応答を重ねて数えたのではないことを、推移から示す */
 function roleSplit(v,st){
@@ -1348,13 +1365,17 @@ function prevVal(idx,arg,dim){let v=null;for(let i=0;i<idx;i++){const e=LINES[i]
 const tpl=(s,V)=>String(s).replace(/\{(\w+)\}/g,(m,k)=>(k in V)?V[k]:m);
 function vnum(v){
   if(!v) return {};
-  /* 整数は整数のまま。素点差 1 を「1.0点差」と読ませない */
+  /* 整数は整数のまま。Strength 差 33 を「33.0」と読ませない */
   const f=n=>fmt(Math.abs(n));
   const K=['〇','一','二','三','四','五'];
-  return {aff:v.aff,neg:v.neg,side:v.side,margin:f(v.wsum),raw:f(v.raw),
-          affW:fmt(v.wa),negW:fmt(v.wn),movedN:K[v.moved]||String(v.moved),
-          sideEn:v.wsum>0?'Affirmative':v.wsum<0?'Negative':'a tie',
-          rawSide:v.raw>0?'肯定側':v.raw<0?'否定側':'引き分け'};
+  return {side:v.side,margin:f(v.diff),movedN:K[v.moved]||String(v.moved),
+          affP:v.A.P,affPdim:v.A.Pdim.n,affI:v.A.I,affS:fmt(v.A.S),affW:fmt(v.A.W),affF:fmt(v.A.F),
+          negP:v.D.P,negPdim:v.D.Pdim.n,negI:v.D.I,negS:fmt(v.D.S),negW:fmt(v.D.W),negF:fmt(v.D.F),
+          sideEn:v.diff>0?'Affirmative':v.diff<0?'Negative':'a tie',
+          wnote:v.A.W===v.D.W
+            ?(v.A.W===1?'どちらの Strength にも重みは掛からなかった'
+                       :fmt(v.A.W)+'倍が肯定側と否定側の両方に掛かったため、Strength の比は変わっていない')
+            :'重みは肯定側 ×'+fmt(v.A.W)+'、否定側 ×'+fmt(v.D.W)+'で、Strength の比が動いた'};
 }
 /* 判定の冒頭に置く、確認が必要な項目の一覧。件数も行もデータから作る。
    人が確認すると値が変わるもの（保留）と、確認しても変わらないもの（確認状態）を別の見出しで並べる。 */
@@ -1381,27 +1402,32 @@ const basisList=v=>'<ul class="wsrc">'+v.rows.map(x=>'<li><b>'+x.d.n+'</b>'+tlin
 /* 判定の結論と、確認が必要な項目の一覧。
    整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
    どこで小数が生まれたのかが列を追うだけで分かる。 */
+/* どの観点が Probability を決めているか。min で捨てた側の値も併せて出す（仕様書 3.3・3.4） */
+const pLine=x=>(x.k==='ADV'?'肯定':'否定')+'側の Probability は'+x.Pdim.n+' '+x.P+' が決めている'+
+  (x.Pall.filter(y=>!y.min).length?'。'+x.Pall.filter(y=>!y.min).map(y=>y.d.n+' '+y.v).join('、')+' はそれより高い':'');
 function drawBrkHead(v){
   if(!v) return '';
-  const s1=n=>(n>0?'+':n<0?'−':'±')+(Number.isInteger(n)?Math.abs(n):Math.abs(n).toFixed(1));
-  const flip=v.raw!==0&&Math.sign(v.raw)!==Math.sign(v.wsum);
-  return '<p class="brkv">暫定判定　'+v.side+'、'+Math.abs(v.wsum).toFixed(1)+'点差</p>'+
-    '<p class="brkd">素点差 '+s1(v.raw)+'（'+vnum(v).rawSide+'）　→　重み反映後 <b>'+s1(v.wsum)+'</b>（'+v.side+'）'+
-    (flip?'　総括の比較で向きが変わった。':'')+'</p>'+drawTodo(v);
+  const s1=n=>(n>0?'+':n<0?'−':'±')+fmt(Math.abs(n));
+  const sw=Math.sign(v.A.S-v.D.S), flip=sw!==0&&sw!==Math.sign(v.diff);
+  return '<p class="brkv">暫定判定　'+v.side+'、Strength 差 '+fmt(Math.abs(v.diff))+'</p>'+
+    '<p class="brkd">Strength 肯定 '+fmt(v.A.S)+' 対 否定 '+fmt(v.D.S)+'　→　重み反映後 肯定 '+fmt(v.A.F)+' 対 否定 '+fmt(v.D.F)+
+    '（<b>'+s1(v.diff)+'</b>／'+v.side+'）'+(flip?'　総括の比較で向きが変わった。':'')+'</p>'+
+    '<p class="brkd">'+pLine(v.A)+'。'+pLine(v.D)+'。</p>'+drawTodo(v);
 }
 /* 判定の内訳表。観点ごとの d_k・w_k・積と、素点差／重み反映後の合計を並べる */
 function drawBrkTable(v,prose=true){
   if(!v) return '';
   const ld=n=>n===0?'互角':(n>0?'肯定':'否定')+'+'+Math.abs(n);
-  const s1=n=>(n>0?'+':n<0?'−':'±')+(Number.isInteger(n)?Math.abs(n):Math.abs(n).toFixed(1));
+  /* 重みは論点単位で Strength に掛かる。どちらの Strength に掛かったのかを列に出す */
+  const wc=r=>r.w===1?(r.arena?'×1.0':'1.0 固定'):'×'+r.w.toFixed(1)+'　'+(r.dk>0?'肯定':'否定')+'側';
   return '<table class="brk">'+
-    '<thead><tr><th>観点</th><th>総括前の差</th><th>重み</th><th>効いた差</th></tr></thead><tbody>'+
+    '<thead><tr><th>観点</th><th>軸</th><th>総括前の差</th><th>重み</th></tr></thead><tbody>'+
     v.rows.map(r=>
-      '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+ld(r.dk)+
-        '</td><td>×'+r.w.toFixed(1)+(r.arena?'':' 固定')+'</td><td>'+s1(r.prod)+'</td></tr>'+
+      '<tr'+(r.w!==1?' class="wt"':'')+'><th>'+r.d.n+'</th><td>'+AXN[r.d.axis]+'</td><td>'+ld(r.dk)+
+        '</td><td>'+wc(r)+'</td></tr>'+
       (prose?'<tr class="dt"><td colspan="4"><p class="cmr">'+r.why+'</p></td></tr>':'')).join('')+
-    '</tbody><tfoot><tr class="raw"><th colspan="3">素点差の合計</th><td>'+s1(v.raw)+'</td></tr>'+
-    '<tr class="wsum"><th colspan="3">重み反映後の合計</th><td>'+s1(v.wsum)+'</td></tr></tfoot></table>'+
+    '</tbody><tfoot><tr class="raw"><th colspan="2">Strength（P × Impact）</th><td>肯定 '+fmt(v.A.S)+'</td><td>否定 '+fmt(v.D.S)+'</td></tr>'+
+    '<tr class="wsum"><th colspan="2">重み反映後</th><td>肯定 '+fmt(v.A.F)+'</td><td>否定 '+fmt(v.D.F)+'</td></tr></tfoot></table>'+
     (VERIFY.length?'<p class="vfn">'+VERIFY.map(x=>tlink(x.t)+'　'+x.target+'：'+x.status).join('／')+
       '。エンジンは資料の読み方の正誤を判定していない。人が確認しても値が動かないため、保留（要確認）とは別に扱う。</p>':'')+
     ((v.combo&&v.combo.length)?'<p class="tolink"><a class="jl" href="#" data-j="combo" data-k="0">保留'+
@@ -1422,19 +1448,20 @@ function cmpSteps(v,st){
     const up=r.dk>0?'肯定':'否定', win=r.c>0?'肯定':'否定';
     const lead=r.dk===0?'差なし':'差は'+up+'側+'+Math.abs(r.dk);
     const label=r.arena?(r.c===0?'決着なし':win+'側が制した'):'比較の土俵にしていない';
-    /* 重みは点数ではなく差に掛ける倍率。差がどちら側に付いているかで、伸びる側が決まる。 */
-    const wy=r.w===1.5?'差は'+up+'側に付いているため、1.5倍すると'+up+'側に有利な方向へ大きくなる。'
-           :r.w===0.5?'差は'+up+'側に付いたままなので、0.5倍で半分に圧縮されるだけで'+up+'側の優位は消えない。'
-           :'1.0を掛けても差は変わらない。';
+    /* 重みは点数ではなく、その観点で優位な側の Strength に掛ける倍率。掛かる先は差の符号で決まる。 */
+    const wy=r.w===1.5?'差は'+up+'側に付いているため、'+up+'側の Strength に1.5倍が掛かる。'
+           :r.w===0.5?'差は'+up+'側に付いたままなので、'+up+'側の Strength が半分に圧縮される。それでも'+up+'側の優位は消えない。'
+           :'どちらの Strength にも掛からない。';
     return '<div class="cstep" data-c="'+(r.arena?(r.c>0?'aff':r.c<0?'neg':'none'):'off')+'">'+
       '<div class="csh"><b>'+M[i]+'　'+r.d.n+'</b><span>総括前　肯定'+a+' 対 否定'+n+'、'+lead+'</span></div>'+
       '<div class="cjd">'+label+'</div>'+
       '<p class="cwhy">'+r.why+'</p>'+
       '<p class="cwy">'+wy+'</p>'+
-      '<div class="ccal">'+sfmt(r.dk)+' × '+r.w.toFixed(1)+' = '+sfmt(r.prod)+'</div></div>';
+      '<div class="ccal">'+(r.w===1?'重みなし':up+'側の Strength × '+r.w.toFixed(1))+'</div></div>';
   }).join('')+
-  '<div class="ctot">合計すると、素点の差 <b>'+sfmt(v.raw)+'</b> が重み反映後は <b>'+sfmt(v.wsum)+
-  '</b> になる。側ごとに見れば肯定 '+fmt(v.wa)+' 対 否定 '+fmt(v.wn)+'。判定はこの重み反映後の差で決まる。</div>'+roleSplit(v,st);
+  '<div class="ctot">Strength は肯定 <b>'+fmt(v.A.S)+'</b>（'+v.A.P+' × '+v.A.I+'）対 否定 <b>'+fmt(v.D.S)+
+  '</b>（'+v.D.P+' × '+v.D.I+'）。重みを掛けると肯定 '+fmt(v.A.F)+' 対 否定 '+fmt(v.D.F)+
+  ' になる。判定はこの値で決まる。</div>'+roleSplit(v,st);
 }
 function drawNotes(upto){
   let h='';
