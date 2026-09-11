@@ -146,6 +146,7 @@ select{font-family:inherit;font-size:12.5px;padding:4px 6px;border:1px solid var
 .arg .at{font-size:12px;color:var(--ink-faint);white-space:nowrap;font-variant-numeric:tabular-nums}
 .arg .at b{font-size:16px;color:var(--ink);font-weight:600}
 .arg .at em{display:block;font-style:normal;font-size:10.5px;color:var(--ink);font-weight:600;margin-top:0;letter-spacing:.02em;line-height:1.3}
+.arg .at em.alone{font-size:9.5px;font-weight:400;color:var(--ink-faint);margin-top:2px}
 .dim .dw{font-size:10.5px;text-align:right;color:var(--ink-faint);font-variant-numeric:tabular-nums}
 .dim .dw.up{color:var(--ink);font-weight:600}
 .dim .dwy{grid-column:1/5;text-align:right;font-size:9.5px;line-height:1.3;color:var(--ink-faint);margin-top:1px}
@@ -356,6 +357,8 @@ a.jl{font-size:10.5px;color:var(--aff);text-decoration:underline dotted;text-und
 .note .vfy b{display:block;font-size:10.5px;letter-spacing:.04em;color:var(--ink);font-weight:600}
 .ctot{margin:8px 0 0;padding:6px 9px;background:#EFF2F6;border-radius:3px;font-size:12px;line-height:1.6;color:var(--ink-soft)}
 .ctot b{color:var(--ink);font-size:13px}
+/* 重みの相殺。合計行の結論として、比が動いたかどうかをその場で読ませる */
+.ctot .ctn{display:block;margin-top:4px;padding-top:4px;border-top:1px solid var(--rule-fine);font-size:11.5px;line-height:1.55;color:var(--ink)}
 /* 総括比較の吹き出し：広げて、観点ごとの比較を中に出す */
 /* 通常の吹き出しは pointer-events:none でクリックを透過させているが、
    総括比較の吹き出しは中をスクロールさせるので、ホイールとスクロールバーを受ける */
@@ -639,7 +642,7 @@ const SUMCMP={
         src:'対応する発言：4:06 ／ 4:14'},
   evd: {arena:false,c: 0,
         short:'攻撃では争ったが、総括では比較の軸にならなかった',
-        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告の調査概要を読み上げて10人未満の企業を調べたものだと述べ、否定側は肯定側の資料の労働者がどれだけプランの対象企業にいるか示されていないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないので重みは1.0に固定する。',
+        why:'双方とも攻撃では相手の資料を突いている。肯定側は相手の報告の調査概要を読み上げて10人未満の企業を調べたものだと述べ、否定側は肯定側の資料の労働者がどれだけプランの対象企業にいるか示されていないと述べた。ただし総括では、どちらも資料の質そのものを比較の軸にしなかった。射程をめぐる指摘は発生可能性の土俵で扱う。土俵にしないうえ、この観点は Strength の計算に入らないので、重みは適用しない。',
         src:'該当する比較の主張なし'}
 };
 const DIMN=Object.fromEntries(DIMS.map(d=>[d.id,d.n]));
@@ -907,7 +910,9 @@ L(18,'J','—',`<b>Tentative result — {sideEn}, by {margin} in Strength.</b> S
   say:'暫定判定は{side}、Strength 差 {margin}です。肯定側は Probability {affP} に Impact {affI} を掛けて Strength {affS}、否定側は Probability {negP} に Impact {negI} を掛けて Strength {negS} です。総括で{movedN}つの観点に決着がつき、重みを掛けると肯定 {affF} 対 否定 {negF} になります。ただし確定の前に、人が確認すべき項目が二つあります。一つ目は資料の同一性です。肯定側が読み上げた報告と否定側が引用した報告が同じものか、否定側が機関名を示していないため照合できていません。ただし同一でなくても、判定の向きは変わりません。二つ目は否定側のインパクトです。この8点は数字と価値づけの二つで支えられていますが、価値づけの側を肯定側が一度も攻撃しませんでした。反論がないと採点を固定する手がかりがなく、採点するたびに値が動きます。エンジンは判定を出しますが、確定するのは人です。そこに至った記録をすべて残していますので、過程を検証してから決めることができます。',
   judg:'重み反映後の値で{side}、Strength 差 {margin}。総括で{movedN}つの観点に決着がついたが、{wnote}。ただし確定の前に、人が確認すべき項目が残っている。',
   body:['勝敗を分けたのはインパクトである。積では Impact は Probability に掛かる係数なので、そこが落ちると他の観点の値では埋められない。肯定側のインパクトは 3:32 の落としで {affI} になり、Probability {affP} と掛け合わせた Strength は {affS} にとどまった。否定側は Probability {negP} に Impact {negI} が乗って {negS} である。',
-        '和モデル（v20）では、肯定側が防御で応答して4を守り、総括でも同じ土俵に立っていれば結論は逆転していた。積モデルではその条件でも否定側が残る。2:18 の攻撃（数値の側の崩壊、到達点4）が成立した時点で、防御で戻せる上限は4であり、積ではその上限では足りないためである。勝敗を決めた場面は、3:32 の落としから 2:18 の攻撃そのものへ移る。',
+        '積と最小値の組み合わせでは、Probability を決めている観点がその側の上限になる。どの観点が上限を握っていたかを試合の順に追うと、両側で事情が違う。',
+        '{chainAff}',
+        '{chainNeg}',
         'なお肯定側のプラン（従業員300人以上）は事前の論題定義の範囲内という前提で進めたので、論題適合性による保留はない。対象が限られることによる規模の評価は、立論の採点に織り込み済みである。',
         '〔このエンジンの立場〕',
         'エンジンは判定を出す。人間ジャッジとの勝敗一致率を指標として設計しており、結論を避ける仕組みではない。',
@@ -1360,7 +1365,9 @@ function drawScores(st,hits){
        代わりに Strength の組み立て（P × Impact）をそのまま出す。各観点の値と推移は行に残る。 */
     const sp=probOf(s2.cur), sI=s2.cur[IDIM.id], sv=v?(k==='ADV'?v.A:v.D):null;
     const wt=(sv&&v.on&&sv.W!==1)?'<em>重み ×'+fmt(sv.W)+' → '+fmt(sv.F)+'</em>':'';
-    return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>Strength '+fmt(sp.v*sI)+'</b><em>P '+sp.v+' × Impact '+sI+'</em>'+wt+'</span></div>'+rows+'</div>';
+    /* 相手がまだ出ていない時点の Strength は比較対象がない。その事実だけを添える */
+    const solo=ak.length<2?'<em class="alone">相手の立論はまだ提示されていない</em>':'';
+    return '<div class="arg" data-side="'+m.side+'"><div class="ah"><span class="an"><span class="aoT">'+(m.side==='aff'?'肯定':'否定')+'</span>'+m.name+tag+'</span><span class="at"><b>Strength '+fmt(sp.v*sI)+'</b><em>P '+sp.v+' × Impact '+sI+'</em>'+wt+solo+'</span></div>'+rows+'</div>';
   }).join('')+drawTrace(st,v)+bridge(st,v,wm);
   drawCmp(st);
 }
@@ -1488,6 +1495,7 @@ function vnum(v){
           affP:v.A.P,affPdim:pdn(v.A),affI:v.A.I,affS:fmt(v.A.S),affW:fmt(v.A.W),affF:fmt(v.A.F),
           negP:v.D.P,negPdim:pdn(v.D),negI:v.D.I,negS:fmt(v.D.S),negW:fmt(v.D.W),negF:fmt(v.D.F),
           sideEn:v.diff>0?'Affirmative':v.diff<0?'Negative':'a tie',
+          chainAff:chainLine(v.trace,'ADV'),chainNeg:chainLine(v.trace,'DIS'),
           wnote:v.A.W===v.D.W
             ?(v.A.W===1?'どちらの Strength にも重みは掛からなかった'
                        :fmt(v.A.W)+'倍が肯定側と否定側の両方に掛かったため、Strength の比は変わっていない')
@@ -1518,6 +1526,39 @@ const basisList=v=>'<ul class="wsrc">'+v.rows.map(x=>'<li><b>'+x.d.n+'</b>'+tlin
    整数は整数のまま出す。小数は重み1.5/0.5が掛かった箇所にだけ現れ、
    どこで小数が生まれたのかが列を追うだけで分かる。 */
 /* どの観点が Probability を決めているか。min で捨てた側の値も併せて出す（仕様書 3.3・3.4） */
+/* Probability を決めていた環の時系列。min は同値で並ぶことがあるので観点の集合として比べ、
+   集合か値が変わった時点だけを残す。反実仮想ではなく「何が上限だったか」を出す（v22 仕様書 3.4）。 */
+function chainOf(TR,a){
+  const out=[];
+  for(const e of TR){const c=e.side[a]; if(!c) continue;
+    const key=c.Pdims.map(d=>d.id).join('+'), last=out[out.length-1];
+    if(last&&last.key===key&&last.P===c.P) continue;
+    out.push({key,t:e.t,P:c.P,dims:c.Pdims});}
+  return out;
+}
+function impOf(TR,a){
+  const out=[];
+  for(const e of TR){const c=e.side[a]; if(!c) continue;
+    const last=out[out.length-1]; if(last&&last.I===c.I) continue;
+    out.push({t:e.t,I:c.I});}
+  return out;
+}
+function chainLine(TR,a){
+  if(!TR) return '';
+  const c=chainOf(TR,a); if(!c.length) return '';
+  const ja=a==='ADV'?'肯定':'否定', nm=l=>l.map(d=>d.n).join('と');
+  const seg=(x,i)=>(i?x.t+'　':'立論　')+nm(x.dims)+' '+x.P+(x.dims.length>1?'（並んで最小）':'');
+  /* 最初から最後まで最小であり続けた観点があるか。あれば弱点は最初から同じ、なければ途中で移った */
+  const ever=c[0].dims.filter(d=>c.every(x=>x.dims.indexOf(d)>=0));
+  const note=ever.length
+    ?nm(ever)+'は一度も最小から外れていない。縛っていた場所は最初から最後まで同じだった。'
+    :c[1].t+' で縛る環が'+nm(c[0].dims)+'から'+nm(c[1].dims)+'へ入れ替わった。攻撃を受けて新しい弱点ができたことになる。';
+  const im=impOf(TR,a);
+  const ims=im.length<2?'Impact は立論の '+im[0].I+' から一度も動いていない。'
+    :'Impact は立論の '+im[0].I+' から '+im.slice(1).map(x=>x.t+' に '+x.I).join('、')+
+      (im[im.length-1].I<im[0].I?' へ落ち、戻っていない。':' と動いた。');
+  return ja+'側の Probability を決めていた環は、'+c.map(seg).join(' → ')+'。'+note+'　'+ims;
+}
 const pLine=x=>(x.k==='ADV'?'肯定':'否定')+'側の Probability は'+pdn(x)+' '+x.P+
   (x.Pdims.length>1?' が並んで決めている':' が決めている')+
   (x.Pall.filter(y=>!y.min).length?'。'+x.Pall.filter(y=>!y.min).map(y=>y.d.n+' '+y.v).join('、')+' はそれより高い':'');
@@ -1576,6 +1617,16 @@ const drawBrkHolds=v=>drawSens(v)+drawCombo(v);
 function drawBrk(v,prose=true){
   return v?drawBrkHead(v)+drawBrkTable(v,prose)+drawBrkHolds(v):'';
 }
+/* 重みを掛けた結果、比がどう動いたか。倍率が両側に等しく掛かれば比は保存され、総括は結論を動かさない。
+   この試合がその場合にあたる。片側だけ・倍率が違う場合にも正しい文が出るよう、W から組み立てる。 */
+function wCancel(v){
+  const rat=(a,n)=>fmt(a)+' 対 '+fmt(n);
+  if(v.A.W===1&&v.D.W===1) return 'どちらの Strength にも重みは掛からなかったので、'+rat(v.A.S,v.D.S)+' がそのまま判定の値になる。';
+  if(v.A.W===v.D.W) return '両側とも '+fmt(v.A.W)+' 倍が掛かったため、'+rat(v.A.S,v.D.S)+' と '+rat(v.A.F,v.D.F)+
+    ' は比が変わっていない。総括で二つの観点に決着がついたが、この試合では総括は結論を動かしていない。';
+  return '重みは肯定側 ×'+fmt(v.A.W)+'、否定側 ×'+fmt(v.D.W)+' で等しくないため、比は '+rat(v.A.S,v.D.S)+
+    ' から '+rat(v.A.F,v.D.F)+' に変わった。ここでは総括が結論の向きに効いている。';
+}
 /* 総括比較の note に入れる、観点ごとの内訳。数値はすべて judge() から生成するので
    立論のスコアや c_k を変えても文章とずれない。 */
 function cmpSteps(v,st){
@@ -1598,7 +1649,7 @@ function cmpSteps(v,st){
   }).join('')+
   '<div class="ctot">Strength は肯定 <b>'+fmt(v.A.S)+'</b>（'+v.A.P+' × '+v.A.I+'）対 否定 <b>'+fmt(v.D.S)+
   '</b>（'+v.D.P+' × '+v.D.I+'）。重みを掛けると肯定 '+fmt(v.A.F)+' 対 否定 '+fmt(v.D.F)+
-  ' になる。判定はこの値で決まる。</div>'+roleSplit(v,st);
+  ' になる。判定はこの値で決まる。<span class="ctn">'+wCancel(v)+'</span></div>'+roleSplit(v,st);
 }
 function drawNotes(upto){
   let h='';
